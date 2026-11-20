@@ -1,10 +1,29 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as renderWithTestingLibrary, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import enMessages from '../../../messages/en.json';
 import { useDonationVaultClient } from '@/lib/donationVaultClient';
 
 import { CreateStreamForm } from './CreateStreamForm';
+
+function render(ui: ReactElement) {
+  return renderWithTestingLibrary(ui, {
+    wrapper: ({ children }) => (
+      <NextIntlClientProvider
+        locale="en"
+        messages={{
+          Durations: enMessages.Durations,
+          CreateStreamForm: enMessages.CreateStreamForm,
+        }}
+      >
+        {children}
+      </NextIntlClientProvider>
+    ),
+  });
+}
 
 const DONOR_ADDRESS = 'G' + 'D'.repeat(55);
 const NGO_ADDRESS = 'G' + 'N'.repeat(55);

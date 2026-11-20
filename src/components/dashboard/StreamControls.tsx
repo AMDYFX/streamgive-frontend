@@ -54,6 +54,7 @@ export function StreamControls({
   onOptimisticUpdate?: (patch: Partial<Stream>) => void;
 }) {
   const t = useTranslations('StreamControls');
+  const tDuration = useTranslations('Durations');
   const { address } = useWallet();
   const { client, ready } = useDonationVaultClient();
   const { showToast } = useToast();
@@ -302,9 +303,9 @@ export function StreamControls({
             aria-label={t('newDuration')}
             className="rounded-md border border-gray-300 px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:bg-gray-900 dark:focus-visible:ring-teal-400"
           >
-            {DURATIONS.map((d, index) => (
+            {DURATIONS.map((d) => (
               <option key={d.seconds} value={d.seconds}>
-                {t((['oneWeek', 'oneMonth', 'threeMonths', 'oneYear'] as const)[index])}
+                {tDuration(`seconds${d.seconds}`)}
               </option>
             ))}
           </select>
