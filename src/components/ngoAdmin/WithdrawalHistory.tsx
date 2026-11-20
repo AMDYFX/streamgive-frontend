@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 import { getWithdrawals, type Withdrawal } from '@/lib/api';
@@ -13,6 +14,7 @@ const PAGE_SIZE = 10;
  * Fetches once on mount and again if `ngoId` changes.
  */
 export function WithdrawalHistory({ ngoId }: { ngoId: string }) {
+  const locale = useLocale();
   const [withdrawals, setWithdrawals] = useState<Withdrawal[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   // Starts true: the fetch below begins on the very first render, so this
@@ -119,7 +121,7 @@ export function WithdrawalHistory({ ngoId }: { ngoId: string }) {
               {visibleWithdrawals.map((withdrawal) => (
                 <tr key={withdrawal.id} className="border-b border-gray-100 dark:border-gray-900">
                   <td className="py-2 text-gray-600 dark:text-gray-400">
-                    {formatDateTime(withdrawal.createdAt)}
+                    {formatDateTime(withdrawal.createdAt, locale)}
                   </td>
                   <td className="py-2">#{withdrawal.streamId}</td>
                   <td className="py-2 text-right font-medium">
