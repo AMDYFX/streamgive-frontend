@@ -4,7 +4,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import {
-  DEFAULT_LOCALE,
   LOCALE_COOKIE,
   LOCALE_LABELS,
   LOCALES,
@@ -25,39 +24,15 @@ export function localeCookieString(locale: Locale, protocol: string): string {
  * reads and refreshes the page), it just won't change anything outside
  * those two components yet. See docs/I18N.md.
  */
-function useSafeLocale(): Locale {
-  try {
-    return useLocale() as Locale;
-  } catch {
-    return DEFAULT_LOCALE;
-  }
-}
-
-function useSafeTranslations(namespace: string) {
-  try {
-    return useTranslations(namespace);
-  } catch {
-    return (key: string) => key;
-  }
-}
-
-function useSafeRouter() {
-  try {
-    return useRouter();
-  } catch {
-    return null;
-  }
-}
-
 export function LocaleSwitcher() {
-  const locale = useSafeLocale();
-  const t = useSafeTranslations('LocaleSwitcher');
-  const router = useSafeRouter();
+  const locale = useLocale() as Locale;
+  const t = useTranslations('LocaleSwitcher');
+  const router = useRouter();
 
   function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
     const next = event.target.value as Locale;
     document.cookie = localeCookieString(next, window.location.protocol);
-    router?.refresh();
+    router.refresh();
   }
 
   return (
