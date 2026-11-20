@@ -1,5 +1,15 @@
 /** Base URL of the `streamgive-backend` API every fetch call targets. */
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+if (
+  !configuredApiUrl &&
+  process.env.NODE_ENV !== 'development' &&
+  process.env.NODE_ENV !== 'test'
+) {
+  throw new Error('NEXT_PUBLIC_API_URL must be set outside development.');
+}
+
+export const API_URL = configuredApiUrl || 'http://localhost:3000';
 
 /**
  * Server-render fallback for the app's own origin.

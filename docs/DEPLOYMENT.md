@@ -36,7 +36,7 @@ time. None of the variables below are like that today.
 
 | Variable | Required | Default / testnet value | Description |
 |---|---|---|---|
-| `NEXT_PUBLIC_API_URL` | No | `http://localhost:3000` | Base URL of the `streamgive-backend` API. Point this at your staging/production API. Also read by `src/middleware.ts` to allowlist it in the CSP's `connect-src`. |
+| `NEXT_PUBLIC_API_URL` | **Yes** | `http://localhost:3000` in development only | Base URL of the `streamgive-backend` API. Set this at build time; a missing or blank value raises a configuration error outside development. Also read by `src/middleware.ts` to allowlist it in the CSP's `connect-src`. |
 | `NEXT_PUBLIC_APP_URL` | No | `http://localhost:3001` | The app's own origin. Used as a server-render fallback (`robots.ts`, `sitemap.ts`, the root layout's metadata) and as the SSR fallback for the embed snippet/QR code before the browser's real origin is available. Set it to the deployed domain for correct SEO metadata. |
 | `NEXT_PUBLIC_SOROBAN_RPC_URL` | No | `https://soroban-testnet.stellar.org` | Soroban RPC endpoint for on-chain reads and contract calls. Must match the network of the contract IDs below. Also read by `src/middleware.ts` to allowlist it in the CSP's `connect-src`. |
 | `NEXT_PUBLIC_NETWORK_PASSPHRASE` | No | `Test SDF Network ; September 2015` | Stellar network passphrase. Use `Public Global Stellar Network ; September 2015` for mainnet — this also flips `IS_MAINNET`/`NETWORK_NAME` in `src/lib/stellar.ts`, which controls whether the testnet warning banner shows. |
@@ -45,8 +45,9 @@ time. None of the variables below are like that today.
 | `NEXT_PUBLIC_USDC_ISSUER` | No | `GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5` (testnet) | Stellar account of Circle's USDC issuer. The USDC token contract address is derived from this. Switch to the mainnet issuer when moving networks. |
 | `NEXT_PUBLIC_ADMIN_ADDRESS` | No | *(unset)* | The wallet address allowed into `/platform-admin`. Purely cosmetic — it only decides whether the header shows the "Platform Admin" link; the backend independently verifies every admin request against its own `ADMIN_ADDRESS`. Leave unset and the link simply never appears. Must match the backend's `ADMIN_ADDRESS` for the link to show for the right wallet. |
 
-"Required" above means the app is missing core functionality without it
-(donations/registry calls fail), not that a build errors without it.
+The contract IDs marked "Required" above are needed for donations and registry
+calls, although a missing ID does not itself fail the build. The API URL is
+required for non-development builds so they cannot use a visitor's localhost.
 
 All contract-ID/network variables
 (`NEXT_PUBLIC_SOROBAN_RPC_URL`, `NEXT_PUBLIC_NETWORK_PASSPHRASE`,
@@ -67,11 +68,11 @@ Dockerfile involved.
    `VERCEL` is set, since Vercel's own build pipeline expects the default
    layout.
 2. **Set the environment variables.** In the project's Settings →
-   Environment Variables, add each variable from the
-   [reference above](#variable-reference) that you need to override from
-   its testnet default (at minimum, the two contract IDs if you're not
-   using the testnet deployment). Vercel lets you scope each one per
-   environment (Production / Preview / Development) — e.g. point Preview
+   Environment Variables, set `NEXT_PUBLIC_API_URL` to your backend API and
+   add each variable from the [reference above](#variable-reference) that
+   you need to override from its testnet default (including the two contract
+   IDs if you're not using the testnet deployment). Vercel lets you scope
+   each one per environment (Production / Preview / Development) — e.g. point Preview
    deployments at a staging backend and Production at the real one.
 3. **Deploy.** Push to the connected branch, or click "Deploy" in the
    dashboard. Vercel builds and serves the app; no further configuration

@@ -1,3 +1,5 @@
+import { getLocale } from 'next-intl/server';
+
 import { formatAmount } from '@/lib/format';
 import { loadPlatformImpact } from '@/lib/impact';
 
@@ -10,11 +12,15 @@ import { loadPlatformImpact } from '@/lib/impact';
 export async function StatsStrip() {
   const impact = await loadPlatformImpact().catch(() => null);
   if (!impact) return null;
+  const locale = await getLocale();
 
   const stats = [
-    { label: 'Total committed', value: formatAmount(impact.totalCommitted.toString()) },
-    { label: 'Active streams', value: impact.activeStreams.toLocaleString() },
-    { label: 'Verified NGOs', value: impact.ngoCount.toLocaleString() },
+    {
+      label: 'Total committed',
+      value: formatAmount(impact.totalCommitted.toString(), undefined, locale),
+    },
+    { label: 'Active streams', value: impact.activeStreams.toLocaleString(locale) },
+    { label: 'Verified NGOs', value: impact.ngoCount.toLocaleString(locale) },
   ];
 
   return (
