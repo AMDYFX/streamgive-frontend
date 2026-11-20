@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import type { NgoApplicationStatus } from '@/lib/api';
 
@@ -12,6 +15,7 @@ const PANEL_STYLES = {
 } as const;
 
 export function ApplicationStatusPanel({ application }: { application: NgoApplicationStatus }) {
+  const t = useTranslations('ApplicationStatus');
   return (
     <div
       role="status"
@@ -19,31 +23,31 @@ export function ApplicationStatusPanel({ application }: { application: NgoApplic
     >
       {application.status === 'PENDING' && (
         <>
-          <p className="font-medium">Your application is pending review.</p>
+          <p className="font-medium">{t('pending')}</p>
           <p className="mt-1 text-sm">
-            We&apos;ll reach out at the contact email you provided once it has been reviewed.
+            {t('pendingHelp')}
           </p>
         </>
       )}
 
       {application.status === 'APPROVED' && (
         <>
-          <p className="font-medium">Your application has been approved.</p>
+          <p className="font-medium">{t('approved')}</p>
           <p className="mt-1 text-sm">
-            You can now{' '}
+            {t('approvedBeforeLink')}{' '}
             <Link href="/ngo-admin" className="underline">
-              manage your streams
+              {t('manageStreams')}
             </Link>
-            .
+            {t('approvedAfterLink')}
           </p>
         </>
       )}
 
       {application.status === 'REJECTED' && (
         <>
-          <p className="font-medium">Your application was not approved.</p>
+          <p className="font-medium">{t('rejected')}</p>
           {application.reviewNote && (
-            <p className="mt-1 text-sm">Reviewer&apos;s note: {application.reviewNote}</p>
+            <p className="mt-1 text-sm">{t('reviewerNote', { note: application.reviewNote })}</p>
           )}
         </>
       )}

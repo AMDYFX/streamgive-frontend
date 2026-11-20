@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Stream } from '@/lib/api';
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 import { StreamControls, computeModifyRate } from './StreamControls';
 
@@ -92,7 +93,7 @@ describe('StreamControls', () => {
   });
 
   it('gives every idle-state action button a visible focus-visible ring', () => {
-    render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+    renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
     for (const name of ['Top up', 'Modify rate', 'Cancel']) {
       expect(screen.getByRole('button', { name })).toHaveClass(
@@ -105,7 +106,7 @@ describe('StreamControls', () => {
 
   it('disables every action button and shows a loading indicator while the contract client is not ready', () => {
     useDonationVaultClient.mockReturnValue({ client: null, ready: false });
-    render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+    renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Top up' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Modify rate' })).toBeDisabled();
@@ -114,14 +115,14 @@ describe('StreamControls', () => {
   });
 
   it('announces operation feedback in a polite live region', () => {
-    render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+    renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
   it('shows "Topping up…" only while a top-up is in flight', async () => {
     const user = userEvent.setup();
-    render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+    renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: 'Top up' }));
     await user.type(screen.getByLabelText(/amount to add/i), '5');
@@ -143,7 +144,7 @@ describe('StreamControls', () => {
       ready: true,
     });
     const user = userEvent.setup();
-    render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+    renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: 'Top up' }));
     await user.type(screen.getByLabelText(/amount to add/i), '5');
@@ -155,7 +156,7 @@ describe('StreamControls', () => {
 
   it('shows "Updating…" only while a rate change is in flight', async () => {
     const user = userEvent.setup();
-    render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+    renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: 'Modify rate' }));
     await user.click(screen.getByRole('button', { name: 'Confirm' }));
@@ -167,7 +168,7 @@ describe('StreamControls', () => {
 
   it('shows "Cancelling…" while a cancellation is in flight', async () => {
     const user = userEvent.setup();
-    render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+    renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await user.click(screen.getByRole('button', { name: 'Yes, cancel' }));
@@ -180,7 +181,7 @@ describe('StreamControls', () => {
   describe('mode switching', () => {
     it('returns to the idle buttons when Back is clicked from top-up mode', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Top up' }));
       expect(screen.getByLabelText(/amount to add/i)).toBeInTheDocument();
@@ -193,7 +194,7 @@ describe('StreamControls', () => {
 
     it('returns to the idle buttons when Back is clicked from modify-rate mode', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Modify rate' }));
       expect(screen.getByLabelText(/new duration/i)).toBeInTheDocument();
@@ -206,7 +207,7 @@ describe('StreamControls', () => {
 
     it('returns to the idle buttons when Never mind is clicked from cancel confirmation', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(screen.getByText(/cancel this stream/i)).toBeInTheDocument();
@@ -221,7 +222,7 @@ describe('StreamControls', () => {
   describe('top-up amount validation', () => {
     it('disables Confirm until a valid amount is entered', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
       await user.click(screen.getByRole('button', { name: 'Top up' }));
 
       expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled();
@@ -238,7 +239,7 @@ describe('StreamControls', () => {
     // e.g. too many decimal places had no way to tell what was wrong.
     it('explains why an invalid amount is rejected', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
       await user.click(screen.getByRole('button', { name: 'Top up' }));
 
       await user.type(screen.getByLabelText(/amount to add/i), '1.23456789');
@@ -262,7 +263,7 @@ describe('StreamControls', () => {
       });
       const onChanged = vi.fn();
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={onChanged} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={onChanged} />);
 
       await user.click(screen.getByRole('button', { name: 'Top up' }));
       await user.type(screen.getByLabelText(/amount to add/i), '5');
@@ -290,7 +291,7 @@ describe('StreamControls', () => {
       });
       const onChanged = vi.fn();
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={onChanged} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={onChanged} />);
 
       await user.click(screen.getByRole('button', { name: 'Top up' }));
       await user.type(screen.getByLabelText(/amount to add/i), '5');
@@ -310,7 +311,7 @@ describe('StreamControls', () => {
       const user = userEvent.setup();
       // The preview allows submission, but the refreshed balance has
       // drained below the minimum rate by the time Confirm is clicked.
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Modify rate' }));
       await user.click(screen.getByRole('button', { name: 'Confirm' }));
@@ -329,7 +330,7 @@ describe('StreamControls', () => {
     // before the submit-time balance re-fetch) was already known to be null.
     it('disables Confirm up front when the previewed rate is null', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={TINY_BALANCE_STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={TINY_BALANCE_STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Modify rate' }));
 
@@ -351,7 +352,7 @@ describe('StreamControls', () => {
       getStreams.mockResolvedValue([{ ...STREAM, balance: '500000000000' }]);
 
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Modify rate' }));
       await user.click(screen.getByRole('button', { name: 'Confirm' }));
@@ -376,7 +377,7 @@ describe('StreamControls', () => {
       });
       const onChanged = vi.fn();
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={onChanged} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={onChanged} />);
 
       await user.click(screen.getByRole('button', { name: 'Modify rate' }));
       await user.click(screen.getByRole('button', { name: 'Confirm' }));
@@ -400,7 +401,7 @@ describe('StreamControls', () => {
         ready: true,
       });
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Modify rate' }));
       const confirm = screen.getByRole('button', { name: 'Confirm' });
@@ -427,7 +428,7 @@ describe('StreamControls', () => {
         ready: true,
       });
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Modify rate' }));
       await user.click(screen.getByRole('button', { name: 'Confirm' }));
@@ -445,7 +446,7 @@ describe('StreamControls', () => {
       });
       const onChanged = vi.fn();
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={onChanged} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={onChanged} />);
 
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       await user.click(screen.getByRole('button', { name: 'Yes, cancel' }));
@@ -471,7 +472,7 @@ describe('StreamControls', () => {
         ready: true,
       });
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       await user.click(screen.getByRole('button', { name: 'Yes, cancel' }));
@@ -484,7 +485,7 @@ describe('StreamControls', () => {
   describe('keyboard focus across mode switches', () => {
     it('moves focus to the amount input on entering top-up, and back to the Top up button on Back', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Top up' }));
       expect(screen.getByLabelText(/amount to add/i)).toHaveFocus();
@@ -495,7 +496,7 @@ describe('StreamControls', () => {
 
     it('moves focus to the duration select on entering modify, and back to the Modify rate button on Back', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Modify rate' }));
       expect(screen.getByLabelText(/new duration/i)).toHaveFocus();
@@ -506,7 +507,7 @@ describe('StreamControls', () => {
 
     it('moves focus to "Yes, cancel" on entering the cancel confirmation, and back to the Cancel button on Never mind', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(screen.getByRole('button', { name: 'Yes, cancel' })).toHaveFocus();
@@ -517,7 +518,7 @@ describe('StreamControls', () => {
 
     it('moves focus to the status region when submitting leaves the trigger disabled', async () => {
       const user = userEvent.setup();
-      render(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
+      renderWithIntl(<StreamControls stream={STREAM} onChanged={vi.fn()} />);
 
       await user.click(screen.getByRole('button', { name: 'Top up' }));
       await user.type(screen.getByLabelText(/amount to add/i), '5');

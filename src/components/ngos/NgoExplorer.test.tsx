@@ -1,8 +1,9 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { NgoExplorer } from './NgoExplorer';
 import type { NgoProfile } from '@/lib/api';
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 const mockReplace = vi.fn();
 let mockSearchParams = new URLSearchParams();
@@ -63,9 +64,22 @@ describe('NgoExplorer', () => {
     mockSearchParams = new URLSearchParams();
   });
 
+  it.each([
+    { locale: 'en' as const, options: ['Newest', 'Most active streams', 'Most committed'], empty: 'No verified NGOs yet.', noMatch: 'No NGOs match "Missing".' },
+    { locale: 'es' as const, options: ['Más recientes', 'Más flujos activos', 'Mayor importe comprometido'], empty: 'Aún no hay ONG verificadas.', noMatch: 'Ninguna ONG coincide con "Missing".' },
+  ])('shows sort labels and empty states in $locale', ({ locale, options, empty, noMatch }) => {
+    const { rerender } = renderWithIntl(<NgoExplorer ngos={[]} />, locale);
+    expect(screen.getByText(empty)).toBeInTheDocument();
+
+    rerender(<NgoExplorer ngos={buildNgos()} />);
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(options);
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Missing' } });
+    expect(screen.getByText(noMatch)).toBeInTheDocument();
+  });
+
   it('keeps search results consistent with Load more across more than one page', () => {
     const ngos = buildNgos();
-    render(<NgoExplorer ngos={ngos} />);
+    renderWithIntl(<NgoExplorer ngos={ngos} />);
 
     // First page: PAGE_SIZE (9) of the 20 total NGOs shown, unfiltered.
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(9);
@@ -93,7 +107,7 @@ describe('NgoExplorer', () => {
 
   it('resets pagination to page 1 when the search term changes after loading more', () => {
     const ngos = buildNgos();
-    render(<NgoExplorer ngos={ngos} />);
+    renderWithIntl(<NgoExplorer ngos={ngos} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
     expect(mockReplace).toHaveBeenLastCalledWith('/ngos?page=2', { scroll: false });
@@ -107,7 +121,7 @@ describe('NgoExplorer', () => {
   it('restores search and page state from the URL on mount', () => {
     mockSearchParams = new URLSearchParams('q=Water&page=2');
     const ngos = buildNgos();
-    render(<NgoExplorer ngos={ngos} />);
+    renderWithIntl(<NgoExplorer ngos={ngos} />);
 
     expect(screen.getByDisplayValue('Water')).toBeInTheDocument();
     // Page 2 of the 15 "Water" matches: min(2 * 9, 15) = 15 visible.
@@ -121,7 +135,7 @@ describe('NgoExplorer', () => {
       makeNgo({ id: 'b', name: 'Beta', stats: { totalCommitted: '0', totalWithdrawn: '0', activeStreamCount: 5, donorCount: 0 } }),
       makeNgo({ id: 'c', name: 'Gamma', stats: { totalCommitted: '0', totalWithdrawn: '0', activeStreamCount: 3, donorCount: 0 } }),
     ];
-    render(<NgoExplorer ngos={ngos} />);
+    renderWithIntl(<NgoExplorer ngos={ngos} />);
 
     expect(screen.getByRole('combobox')).toHaveValue('most-active-streams');
 
@@ -132,7 +146,7 @@ describe('NgoExplorer', () => {
   it('writes the sort to the URL when changed (and clears page)', () => {
     mockSearchParams = new URLSearchParams('q=Water&page=2');
     const ngos = buildNgos();
-    render(<NgoExplorer ngos={ngos} />);
+    renderWithIntl(<NgoExplorer ngos={ngos} />);
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'most-committed' } });
 
@@ -144,7 +158,7 @@ describe('NgoExplorer', () => {
 
   it('shows an empty state when the search matches nothing', () => {
     const ngos = buildNgos();
-    render(<NgoExplorer ngos={ngos} />);
+    renderWithIntl(<NgoExplorer ngos={ngos} />);
 
     fireEvent.change(screen.getByPlaceholderText('Search NGOs by name…'), {
       target: { value: 'Nonexistent Org' },
@@ -159,7 +173,7 @@ describe('NgoExplorer', () => {
       makeNgo({ id: 'a', name: 'Alpha', verified: true }),
       makeNgo({ id: 'b', name: 'Beta', verified: true }),
     ];
-    render(<NgoExplorer ngos={ngos} />);
+    renderWithIntl(<NgoExplorer ngos={ngos} />);
 
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(2);
@@ -200,7 +214,7 @@ describe('NgoExplorer', () => {
     });
     // Input order puts the smaller total first, so a no-op "sort" would
     // leave it first too — the opposite of what "Most committed" promises.
-    render(<NgoExplorer ngos={[smaller, larger]} />);
+    renderWithIntl(<NgoExplorer ngos={[smaller, larger]} />);
 
     fireEvent.change(screen.getByLabelText('Sort NGOs'), {
       target: { value: 'most-committed' },

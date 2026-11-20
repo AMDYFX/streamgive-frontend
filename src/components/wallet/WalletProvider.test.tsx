@@ -1,9 +1,10 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ToastProvider } from '@/components/toast/ToastProvider';
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 import { ConnectWalletButton } from './ConnectWalletButton';
 import { useWallet, WalletProvider } from './WalletProvider';
@@ -45,7 +46,7 @@ vi.mock('@creit.tech/stellar-wallets-kit/modules/utils', () => ({
 }));
 
 function renderButton() {
-  return render(
+  return renderWithIntl(
     <ToastProvider>
       <WalletProvider>
         <ConnectWalletButton />
@@ -82,7 +83,7 @@ function NetworkMismatchProbe() {
 }
 
 function renderButtonWithProbe() {
-  return render(
+  return renderWithIntl(
     <ToastProvider>
       <WalletProvider>
         <ConnectWalletButton />
@@ -105,7 +106,7 @@ function WalletStateProbe() {
 }
 
 function renderStateProbe() {
-  return render(
+  return renderWithIntl(
     <ToastProvider>
       <WalletProvider>
         <WalletStateProbe />
@@ -115,7 +116,7 @@ function renderStateProbe() {
 }
 
 function renderSignMessageProbe(message = 'hello') {
-  return render(
+  return renderWithIntl(
     <ToastProvider>
       <WalletProvider>
         <SignMessageProbe message={message} />

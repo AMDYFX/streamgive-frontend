@@ -1,16 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { Suspense } from 'react';
 
 import { NgoExplorer } from '@/components/ngos/NgoExplorer';
 import { getNgo, getNgos, type NgoProfile } from '@/lib/api';
 
-export const metadata: Metadata = {
-  title: 'Explore NGOs',
-  description: 'Browse verified NGOs accepting recurring, streaming donations on Stellar.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('Explorer');
+  return { title: t('heading'), description: t('description') };
+}
 
 export default async function NgosPage() {
+  const t = await getTranslations('Explorer');
   let ngos: NgoProfile[] = [];
   let loadError = false;
 
@@ -36,18 +38,18 @@ export default async function NgosPage() {
 
   return (
     <main id="main" className="px-6 py-16 sm:px-12">
-        <h1 className="text-2xl font-bold">Explore NGOs</h1>
+        <h1 className="text-2xl font-bold">{t('heading')}</h1>
 
         {loadError && (
           <div className="mt-4">
             <p className="text-red-600 dark:text-red-400">
-              Couldn&apos;t load the NGO list. Please check your connection and try again.
+              {t('loadError')}
             </p>
             <Link
               href="/ngos"
               className="mt-3 inline-block rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
             >
-              Retry
+              {t('retry')}
             </Link>
           </div>
         )}
