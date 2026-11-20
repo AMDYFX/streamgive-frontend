@@ -13,6 +13,10 @@ import {
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
+export function localeCookieString(locale: Locale, protocol: string): string {
+  return `${LOCALE_COOKIE}=${locale}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${protocol === 'https:' ? '; Secure' : ''}`;
+}
+
 /**
  * Scaffolding for later real translations (issue: "Add i18n scaffolding") —
  * only `messages/en.json` and `messages/es.json` exist today, and only the
@@ -52,7 +56,7 @@ export function LocaleSwitcher() {
 
   function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
     const next = event.target.value as Locale;
-    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}`;
+    document.cookie = localeCookieString(next, window.location.protocol);
     router?.refresh();
   }
 
