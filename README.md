@@ -34,6 +34,9 @@ wired up and how to add a language.
 See [docs/adr/README.md](./docs/adr/README.md) for accepted architecture
 decisions and the template for recording new ones.
 
+See the [StreamGive glossary](./docs/GLOSSARY.md) for terms used throughout
+the app, including streams, rates, stroops, committed funds, and verified NGOs.
+
 ## Local development
 
 ```
