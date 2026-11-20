@@ -11,9 +11,19 @@ export function renderWithIntl(element: ReactElement, locale: 'en' | 'es' = 'en'
   const messages = (locale === 'en' ? en : es) as unknown as NonNullable<
     ComponentProps<typeof NextIntlClientProvider>['messages']
   >;
-  return render(
+  const result = render(
     <NextIntlClientProvider locale={locale} messages={messages}>
       {element}
     </NextIntlClientProvider>,
   );
+  return {
+    ...result,
+    rerender(nextElement: ReactElement) {
+      result.rerender(
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {nextElement}
+        </NextIntlClientProvider>,
+      );
+    },
+  };
 }
