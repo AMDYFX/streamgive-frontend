@@ -174,5 +174,40 @@
     "donors": "Donors",
     "viewProfile": "View profile",
     "loadMore": "Load more"
+  },
+  "Apply": {
+    "heading": "Apply as an NGO",
+    "metadataDescription": "Apply to receive recurring, streaming donations on StreamGive.",
+    "intro": "Connect the wallet your organization will use to receive donations, then tell us about your NGO. Submitting registers that address in the on-chain registry, so your wallet will ask you to sign one transaction — that signature is what proves the address is yours.",
+    "loading": "Loading…",
+    "connectPrompt": "Connect your wallet to apply.",
+    "connectWallet": "Connect Wallet",
+    "organizationName": "Organization name",
+    "descriptionLabel": "Description",
+    "contactEmail": "Contact email",
+    "websiteOptional": "Website (optional)",
+    "countryOptional": "Country (optional)",
+    "applyingAs": "Applying as",
+    "estimatedFee": "Estimated network fee: {fee}",
+    "confirmInWallet": "Confirm in your wallet…",
+    "submitting": "Submitting…",
+    "preparingContract": "Preparing contract…",
+    "submitApplication": "Submit application",
+    "submitted": "Application submitted!",
+    "submittedHelp": "We'll review it and reach out at the contact email you provided.",
+    "registrationErrorDetail": "Could not register on-chain: {message}",
+    "registrationError": "Could not register on-chain.",
+    "alreadyPending": "An application from this address is already pending review.",
+    "unexpectedError": "Something went wrong."
+  },
+  "ApplicationStatus": {
+    "pending": "Your application is pending review.",
+    "pendingHelp": "We'll reach out at the contact email you provided once it has been reviewed.",
+    "approved": "Your application has been approved.",
+    "approvedBeforeLink": "You can now",
+    "manageStreams": "manage your streams",
+    "approvedAfterLink": ".",
+    "rejected": "Your application was not approved.",
+    "reviewerNote": "Reviewer's note: {note}"
   }
 }

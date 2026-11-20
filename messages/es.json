@@ -174,5 +174,40 @@
     "donors": "Donantes",
     "viewProfile": "Ver perfil",
     "loadMore": "Cargar más"
+  },
+  "Apply": {
+    "heading": "Postular como ONG",
+    "metadataDescription": "Postula para recibir donaciones recurrentes en StreamGive.",
+    "intro": "Conecta la billetera que tu organización usará para recibir donaciones y cuéntanos sobre tu ONG. Al enviar la solicitud, esa dirección se registra en la cadena. Tu billetera te pedirá que firmes una transacción para demostrar que la dirección es tuya.",
+    "loading": "Cargando…",
+    "connectPrompt": "Conecta tu billetera para postular.",
+    "connectWallet": "Conectar billetera",
+    "organizationName": "Nombre de la organización",
+    "descriptionLabel": "Descripción",
+    "contactEmail": "Correo de contacto",
+    "websiteOptional": "Sitio web (opcional)",
+    "countryOptional": "País (opcional)",
+    "applyingAs": "Postulando como",
+    "estimatedFee": "Comisión de red estimada: {fee}",
+    "confirmInWallet": "Confirma en tu billetera…",
+    "submitting": "Enviando…",
+    "preparingContract": "Preparando contrato…",
+    "submitApplication": "Enviar solicitud",
+    "submitted": "¡Solicitud enviada!",
+    "submittedHelp": "La revisaremos y te contactaremos por el correo que proporcionaste.",
+    "registrationErrorDetail": "No se pudo registrar en la cadena: {message}",
+    "registrationError": "No se pudo registrar en la cadena.",
+    "alreadyPending": "Ya hay una solicitud de esta dirección pendiente de revisión.",
+    "unexpectedError": "Se produjo un error."
+  },
+  "ApplicationStatus": {
+    "pending": "Tu solicitud está pendiente de revisión.",
+    "pendingHelp": "Te contactaremos por el correo que proporcionaste cuando se haya revisado.",
+    "approved": "Tu solicitud ha sido aprobada.",
+    "approvedBeforeLink": "Ahora puedes",
+    "manageStreams": "administrar tus flujos",
+    "approvedAfterLink": ".",
+    "rejected": "Tu solicitud no fue aprobada.",
+    "reviewerNote": "Nota de revisión: {note}"
   }
 }
