@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -13,16 +14,14 @@ import { lookupNgoByAddress } from '@/lib/api';
 import { PLATFORM_ADMIN_ADDRESS } from '@/lib/config';
 
 const BASE_NAV_LINKS = [
-  { href: '/ngos', label: 'Explore NGOs' },
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/impact', label: 'Impact' },
-  { href: '/apply', label: 'Apply as NGO' },
-];
-
-const NGO_ADMIN_LINK = { href: '/ngo-admin', label: 'NGO Admin' };
-const PLATFORM_ADMIN_LINK = { href: '/platform-admin', label: 'Platform Admin' };
+  { href: '/ngos', key: 'exploreNgos' },
+  { href: '/dashboard', key: 'dashboard' },
+  { href: '/impact', key: 'impact' },
+  { href: '/apply', key: 'applyAsNgo' },
+] as const;
 
 export function Header() {
+  const t = useTranslations('Header');
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const { address } = useWallet();
@@ -59,8 +58,8 @@ export function Header() {
 
   const navLinks = [
     ...BASE_NAV_LINKS,
-    ...(ownsNgo ? [NGO_ADMIN_LINK] : []),
-    ...(isPlatformAdmin ? [PLATFORM_ADMIN_LINK] : []),
+    ...(ownsNgo ? [{ href: '/ngo-admin', key: 'ngoAdmin' as const }] : []),
+    ...(isPlatformAdmin ? [{ href: '/platform-admin', key: 'platformAdmin' as const }] : []),
   ];
 
   const isActiveLink = (href: string) =>
@@ -120,7 +119,7 @@ export function Header() {
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:bg-gray-900 dark:focus:text-white"
       >
-        Skip to content
+        {t('skipToContent')}
       </a>
       <header className="border-b border-gray-200 px-6 py-4 sm:px-12 dark:border-gray-800">
         <div className="flex items-center justify-between">
@@ -130,17 +129,17 @@ export function Header() {
             onClick={() => setMenuOpen(false)}
           >
             <Logo className="h-5 w-auto" />
-            StreamGive
+            {t('brand')}
           </Link>
 
-          <nav aria-label="Main" className="hidden items-center gap-6 md:flex">
+          <nav aria-label={t('mainNavigation')} className="hidden items-center gap-6 md:flex">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className="rounded-md text-sm font-medium text-gray-600 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:text-gray-400 dark:hover:text-white dark:focus-visible:ring-teal-400"
               >
-                {link.label}
+                {t(link.key)}
               </Link>
             ))}
             <LocaleSwitcher />
@@ -156,7 +155,7 @@ export function Header() {
               onClick={() => setMenuOpen((open) => !open)}
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
-              aria-label="Toggle menu"
+              aria-label={t('toggleMenu')}
               className="rounded-md p-2 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:hover:bg-gray-800 dark:focus-visible:ring-teal-400"
             >
               <svg
@@ -181,7 +180,7 @@ export function Header() {
           <nav
             ref={mobileNavRef}
             id="mobile-nav"
-            aria-label="Mobile"
+            aria-label={t('mobileNavigation')}
             className="mt-4 flex flex-col gap-4 md:hidden"
           >
             {navLinks.map((link) => {
@@ -200,7 +199,7 @@ export function Header() {
                       : 'text-gray-600 hover:border-gray-200 hover:bg-gray-100 hover:text-black dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-800 dark:hover:text-white',
                   ].join(' ')}
                 >
-                  {link.label}
+                  {t(link.key)}
                 </Link>
               );
             })}

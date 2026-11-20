@@ -1,7 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getNgo, getNgos, type Ngo, type NgoProfile } from '@/lib/api';
+import { renderWithIntl } from '@/test/renderWithIntl';
+import en from '../../../../messages/en.json';
+
+vi.mock('next-intl/server', () => ({
+  getTranslations: async () => (key: keyof typeof en.Explorer) => en.Explorer[key],
+}));
 
 vi.mock('@/components/wallet/WalletProvider', () => ({
   useWallet: () => ({
@@ -55,7 +61,7 @@ describe('NgosPage', () => {
       return makeProfile(id);
     });
 
-    render(await NgosPage());
+    renderWithIntl(await NgosPage());
 
     expect(screen.getByText('NGO ngo-1')).toBeInTheDocument();
     expect(screen.getByText('NGO ngo-3')).toBeInTheDocument();
@@ -66,7 +72,7 @@ describe('NgosPage', () => {
   it('shows the error state when the NGO list itself cannot be fetched', async () => {
     vi.mocked(getNgos).mockRejectedValue(new Error('Failed to fetch NGOs: 503'));
 
-    render(await NgosPage());
+    renderWithIntl(await NgosPage());
 
     expect(screen.getByText(/Couldn't load the NGO list/)).toBeInTheDocument();
   });

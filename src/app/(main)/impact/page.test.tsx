@@ -1,8 +1,9 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ImpactPage from './page';
 import { loadPlatformImpact, type PlatformImpact } from '@/lib/impact';
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 // The impact page renders <Header />, which reads the wallet context; give it
 // a signed-out static value the same way Header.test.tsx does.
@@ -46,7 +47,7 @@ describe('ImpactPage polling cleanup (issue #157)', () => {
   it('stops polling once unmounted', async () => {
     vi.mocked(loadPlatformImpact).mockResolvedValue(IMPACT);
 
-    const { unmount } = render(<ImpactPage />);
+    const { unmount } = renderWithIntl(<ImpactPage />);
     await vi.waitFor(() => expect(loadPlatformImpact).toHaveBeenCalledTimes(1));
 
     unmount();
@@ -60,7 +61,7 @@ describe('ImpactPage polling cleanup (issue #157)', () => {
   it('passes an AbortSignal to loadPlatformImpact that is aborted on unmount', async () => {
     vi.mocked(loadPlatformImpact).mockResolvedValue(IMPACT);
 
-    const { unmount } = render(<ImpactPage />);
+    const { unmount } = renderWithIntl(<ImpactPage />);
     await vi.waitFor(() => expect(loadPlatformImpact).toHaveBeenCalledTimes(1));
 
     const signal = vi.mocked(loadPlatformImpact).mock.calls[0][0];
@@ -85,7 +86,7 @@ describe('ImpactPage polling cleanup (issue #157)', () => {
         }),
     );
 
-    const { unmount } = render(<ImpactPage />);
+    const { unmount } = renderWithIntl(<ImpactPage />);
     await vi.waitFor(() => expect(loadPlatformImpact).toHaveBeenCalledTimes(1));
 
     unmount();
@@ -113,7 +114,7 @@ describe('ImpactPage polling cleanup (issue #157)', () => {
         }),
     );
 
-    const { unmount } = render(<ImpactPage />);
+    const { unmount } = renderWithIntl(<ImpactPage />);
     await vi.waitFor(() => expect(loadPlatformImpact).toHaveBeenCalledTimes(1));
 
     unmount();
@@ -131,7 +132,7 @@ describe('ImpactPage polling cleanup (issue #157)', () => {
   it('renders the loaded impact numbers while mounted', async () => {
     vi.mocked(loadPlatformImpact).mockResolvedValue(IMPACT);
 
-    render(<ImpactPage />);
+    renderWithIntl(<ImpactPage />);
 
     await vi.waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
     expect(screen.getByText('4')).toBeInTheDocument();
@@ -156,7 +157,7 @@ describe('ImpactPage error recovery', () => {
     load.mockRejectedValueOnce(new TypeError('fetch failed'));
     load.mockResolvedValueOnce(IMPACT);
 
-    render(<ImpactPage />);
+    renderWithIntl(<ImpactPage />);
 
     // Flush the initial load's rejected promise (findBy* can't be used here:
     // RTL's wait-for polling relies on timers, which are frozen while fake

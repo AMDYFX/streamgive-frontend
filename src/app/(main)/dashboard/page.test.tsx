@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,6 +8,7 @@ import * as ApiMod from '@/lib/api';
 import * as CsvMod from '@/lib/csv';
 import type { Stream } from '@/lib/api';
 import { buildDonationHistoryCsv } from '@/lib/csv';
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 function makeStream(overrides: Partial<Stream> = {}): Stream {
   return {
@@ -75,7 +76,7 @@ describe('DashboardPage', () => {
 
     vi.spyOn(ApiMod, 'getStreams').mockResolvedValue([]);
 
-    render(<DashboardPage />);
+    renderWithIntl(<DashboardPage />);
 
     await waitFor(() => {
       expect(screen.getByText(/you haven't started any streams yet/i)).toBeInTheDocument();
@@ -103,7 +104,7 @@ describe('DashboardPage', () => {
       }),
     );
 
-    render(<DashboardPage />);
+    renderWithIntl(<DashboardPage />);
 
     expect(screen.getByText(/loading your streams/i)).toBeInTheDocument();
     expect(screen.queryByText(/you haven't started any streams yet/i)).not.toBeInTheDocument();
@@ -128,7 +129,7 @@ describe('DashboardPage', () => {
       dismissNoWalletPrompt: vi.fn(),
     });
 
-    render(<DashboardPage />);
+    renderWithIntl(<DashboardPage />);
 
     expect(screen.getByRole('status')).toHaveTextContent(/loading/i);
     expect(screen.queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
@@ -157,7 +158,7 @@ describe('DashboardPage', () => {
         }),
     );
 
-    const { rerender } = render(<DashboardPage />);
+    const { rerender } = renderWithIntl(<DashboardPage />);
     await waitFor(() => expect(resolvers.GOLD).toBeDefined());
 
     // Switch wallets while the first request is still in flight.
@@ -193,7 +194,7 @@ describe('DashboardPage', () => {
       vi.spyOn(ApiMod, 'getStreams').mockResolvedValue([streamOne, streamTwo]);
 
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByText('Test NGO')).toHaveLength(2));
 
@@ -213,7 +214,7 @@ describe('DashboardPage', () => {
       vi.spyOn(ApiMod, 'getStreams').mockResolvedValue([streamOne, streamTwo]);
 
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByText('Test NGO')).toHaveLength(2));
       await user.type(screen.getByPlaceholderText('Search by stream ID…'), '999');
@@ -233,7 +234,7 @@ describe('DashboardPage', () => {
     function setup() {
       mockConnectedWallet();
       vi.spyOn(ApiMod, 'getStreams').mockResolvedValue(manyStreams);
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
     }
 
 
@@ -314,7 +315,7 @@ describe('DashboardPage', () => {
         dismissNoWalletPrompt: vi.fn(),
       });
       vi.spyOn(ApiMod, 'getStreams').mockResolvedValue(streams);
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
     }
 
     it('selects the Active tab on first load when there are active streams', async () => {
@@ -423,7 +424,7 @@ describe('DashboardPage', () => {
       });
 
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
       await user.click(await screen.findByRole('button', { name: 'Export CSV' }));
 
       // Issue #238: The export covers the currently filtered list (Active by default).
@@ -484,7 +485,7 @@ describe('DashboardPage', () => {
         }),
       ]);
 
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getByText('Total committed')).toBeInTheDocument());
 
@@ -504,7 +505,7 @@ describe('DashboardPage', () => {
         mockConnectedWallet();
         const getStreamsMock = vi.spyOn(ApiMod, 'getStreams').mockResolvedValue([]);
 
-        render(<DashboardPage />);
+        renderWithIntl(<DashboardPage />);
         await act(async () => {
           await Promise.resolve();
         });
@@ -530,7 +531,7 @@ describe('DashboardPage', () => {
         mockConnectedWallet();
         const getStreamsMock = vi.spyOn(ApiMod, 'getStreams').mockResolvedValue([]);
 
-        render(<DashboardPage />);
+        renderWithIntl(<DashboardPage />);
         await act(async () => {
           await Promise.resolve();
         });
@@ -610,7 +611,7 @@ describe('DashboardPage', () => {
 
     it('sorts by newest by default', async () => {
       setupStreams();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByRole('link', { name: /NGO / })).toHaveLength(3));
       const names = screen.getAllByRole('link', { name: /NGO / }).map((el) => el.textContent);
@@ -624,7 +625,7 @@ describe('DashboardPage', () => {
     it('sorts by oldest', async () => {
       setupStreams();
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByRole('link', { name: /NGO / })).toHaveLength(3));
       const sortSelect = screen.getByLabelText(/sort by/i);
@@ -641,7 +642,7 @@ describe('DashboardPage', () => {
     it('sorts by largest committed', async () => {
       setupStreams();
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByRole('link', { name: /NGO / })).toHaveLength(3));
       const sortSelect = screen.getByLabelText(/sort by/i);
@@ -658,7 +659,7 @@ describe('DashboardPage', () => {
     it('sorts by ending soonest', async () => {
       setupStreams();
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByRole('link', { name: /NGO / })).toHaveLength(3));
       const sortSelect = screen.getByLabelText(/sort by/i);
@@ -687,7 +688,7 @@ describe('DashboardPage', () => {
       vi.spyOn(ApiMod, 'getStreams').mockResolvedValue([activeStream, cancelledStream]);
 
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByText('Test NGO')).toHaveLength(1));
 
@@ -702,7 +703,7 @@ describe('DashboardPage', () => {
       vi.spyOn(ApiMod, 'getStreams').mockResolvedValue([activeStream, cancelledStream]);
 
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByText('Test NGO')).toHaveLength(1));
 
@@ -717,7 +718,7 @@ describe('DashboardPage', () => {
       vi.spyOn(ApiMod, 'getStreams').mockResolvedValue([activeStream, cancelledStream]);
 
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByText('Test NGO')).toHaveLength(1));
 
@@ -738,7 +739,7 @@ describe('DashboardPage', () => {
       getStreamsMock.mockRejectedValueOnce(new Error('network down'));
 
       const user = userEvent.setup();
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       expect(await screen.findByText(/couldn't load your streams/i)).toBeInTheDocument();
       const retry = screen.getByRole('button', { name: 'Retry' });
@@ -777,7 +778,7 @@ describe('DashboardPage', () => {
         }),
       ]);
 
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
       await act(async () => {
         await Promise.resolve();
       });
@@ -815,7 +816,7 @@ describe('DashboardPage', () => {
         makeStream({ status: 'CANCELLED', balance: '10000000' }),
       ]);
 
-      render(<DashboardPage />);
+      renderWithIntl(<DashboardPage />);
 
       await waitFor(() => expect(screen.getByText('Test NGO')).toBeInTheDocument());
       expect(
