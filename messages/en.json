@@ -154,5 +154,25 @@
     "created": "Created",
     "lastUpdated": "Last updated",
     "onChainId": "On-chain ID"
+  },
+  "Explorer": {
+    "heading": "Explore NGOs",
+    "description": "Browse verified NGOs accepting recurring, streaming donations on Stellar.",
+    "loadError": "Couldn't load the NGO list. Please check your connection and try again.",
+    "retry": "Retry",
+    "noVerifiedNgos": "No verified NGOs yet.",
+    "searchLabel": "Search NGOs by name",
+    "searchPlaceholder": "Search NGOs by name…",
+    "sortLabel": "Sort NGOs",
+    "newest": "Newest",
+    "mostActiveStreams": "Most active streams",
+    "mostCommitted": "Most committed",
+    "noSearchResults": "No NGOs match \"{query}\".",
+    "verified": "Verified",
+    "committed": "Committed",
+    "streams": "Streams",
+    "donors": "Donors",
+    "viewProfile": "View profile",
+    "loadMore": "Load more"
   }
 }

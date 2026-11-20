@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -47,6 +48,7 @@ function parseSort(value: string | null): SortOption {
 }
 
 export function NgoExplorer({ ngos }: { ngos: NgoProfile[] }) {
+  const t = useTranslations('Explorer');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -99,7 +101,7 @@ export function NgoExplorer({ ngos }: { ngos: NgoProfile[] }) {
   }
 
   if (ngos.length === 0) {
-    return <p className="mt-4 text-gray-600 dark:text-gray-400">No verified NGOs yet.</p>;
+    return <p className="mt-4 text-gray-600 dark:text-gray-400">{t('noVerifiedNgos')}</p>;
   }
 
   const filteredNgos = sortNgos(
@@ -131,32 +133,32 @@ export function NgoExplorer({ ngos }: { ngos: NgoProfile[] }) {
     <>
       <div className="mt-8 flex flex-wrap items-end gap-4">
         <label className="block flex-1 min-w-[200px] max-w-sm">
-          <span className="sr-only">Search NGOs by name</span>
+          <span className="sr-only">{t('searchLabel')}</span>
           <input
             type="search"
             value={searchQuery}
             onChange={(event) => handleSearchChange(event.target.value)}
-            placeholder="Search NGOs by name…"
+            placeholder={t('searchPlaceholder')}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
           />
         </label>
         <label className="block">
-          <span className="sr-only">Sort NGOs</span>
+          <span className="sr-only">{t('sortLabel')}</span>
           <select
             value={sortBy}
             onChange={(event) => handleSortChange(event.target.value as SortOption)}
             className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
           >
-            <option value="newest">Newest</option>
-            <option value="most-active-streams">Most active streams</option>
-            <option value="most-committed">Most committed</option>
+            <option value="newest">{t('newest')}</option>
+            <option value="most-active-streams">{t('mostActiveStreams')}</option>
+            <option value="most-committed">{t('mostCommitted')}</option>
           </select>
         </label>
       </div>
 
       {filteredNgos.length === 0 ? (
         <p className="mt-8 text-gray-600 dark:text-gray-400">
-          No NGOs match &quot;{searchQuery.trim()}&quot;.
+          {t('noSearchResults', { query: searchQuery.trim() })}
         </p>
       ) : (
         <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -170,30 +172,30 @@ export function NgoExplorer({ ngos }: { ngos: NgoProfile[] }) {
                   <h2 className="font-semibold">{ngo.name}</h2>
                   {ngo.verified && (
                     <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
-                      Verified
+                      {t('verified')}
                     </span>
                   )}
                 </div>
 
                 <dl className="mt-4 grid grid-cols-3 gap-3">
                   <div>
-                    <dt className="text-xs text-gray-500 dark:text-gray-400">Committed</dt>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">{t('committed')}</dt>
                     <dd className="text-sm font-semibold">
                       {formatAmount(ngo.stats.totalCommitted)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-500 dark:text-gray-400">Streams</dt>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">{t('streams')}</dt>
                     <dd className="text-sm font-semibold">{ngo.stats.activeStreamCount}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-500 dark:text-gray-400">Donors</dt>
+                    <dt className="text-xs text-gray-500 dark:text-gray-400">{t('donors')}</dt>
                     <dd className="text-sm font-semibold">{ngo.stats.donorCount}</dd>
                   </div>
                 </dl>
 
                 <span className="mt-4 inline-block text-sm font-medium text-black underline dark:text-white">
-                  View profile
+                  {t('viewProfile')}
                 </span>
               </Link>
             </li>
@@ -208,7 +210,7 @@ export function NgoExplorer({ ngos }: { ngos: NgoProfile[] }) {
             onClick={handleLoadMore}
             className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
           >
-            Load more
+            {t('loadMore')}
           </button>
         </div>
       )}

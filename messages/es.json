@@ -154,5 +154,25 @@
     "created": "Creado",
     "lastUpdated": "Última actualización",
     "onChainId": "ID en cadena"
+  },
+  "Explorer": {
+    "heading": "Explorar ONG",
+    "description": "Explora ONG verificadas que aceptan donaciones recurrentes en Stellar.",
+    "loadError": "No se pudo cargar la lista de ONG. Comprueba tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "noVerifiedNgos": "Aún no hay ONG verificadas.",
+    "searchLabel": "Buscar ONG por nombre",
+    "searchPlaceholder": "Buscar ONG por nombre…",
+    "sortLabel": "Ordenar ONG",
+    "newest": "Más recientes",
+    "mostActiveStreams": "Más flujos activos",
+    "mostCommitted": "Mayor importe comprometido",
+    "noSearchResults": "Ninguna ONG coincide con \"{query}\".",
+    "verified": "Verificada",
+    "committed": "Comprometido",
+    "streams": "Flujos",
+    "donors": "Donantes",
+    "viewProfile": "Ver perfil",
+    "loadMore": "Cargar más"
   }
 }
