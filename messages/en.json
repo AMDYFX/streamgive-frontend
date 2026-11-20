@@ -29,5 +29,22 @@
     "seconds2592000": "1 month",
     "seconds7776000": "3 months",
     "seconds31536000": "1 year"
+  },
+  "NgoProfile": {
+    "notFound": "NGO not found",
+    "metadataDescription": "Support {name} with a recurring, streaming donation on Stellar.",
+    "loadError": "Couldn't load this NGO's profile. Please check your connection and try again.",
+    "retry": "Retry",
+    "verified": "Verified",
+    "totalCommitted": "Total committed",
+    "totalWithdrawn": "Total withdrawn",
+    "activeStreams": "{count, plural, one {Active stream} other {Active streams}}",
+    "donors": "{count, plural, one {Donor} other {Donors}}",
+    "startStreaming": "Start streaming",
+    "recentStreams": "Recent streams",
+    "noStreams": "No streams yet.",
+    "ratePerSecond": "{rate} / second",
+    "active": "Active",
+    "cancelled": "Cancelled"
   }
 }

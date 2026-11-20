@@ -29,5 +29,22 @@
     "seconds2592000": "1 mes",
     "seconds7776000": "3 meses",
     "seconds31536000": "1 año"
+  },
+  "NgoProfile": {
+    "notFound": "ONG no encontrada",
+    "metadataDescription": "Apoya a {name} con una donación periódica y continua en Stellar.",
+    "loadError": "No se pudo cargar el perfil de esta ONG. Comprueba tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "verified": "Verificada",
+    "totalCommitted": "Total comprometido",
+    "totalWithdrawn": "Total retirado",
+    "activeStreams": "{count, plural, one {Flujo activo} other {Flujos activos}}",
+    "donors": "{count, plural, one {Donante} other {Donantes}}",
+    "startStreaming": "Iniciar un flujo",
+    "recentStreams": "Flujos recientes",
+    "noStreams": "Aún no hay flujos.",
+    "ratePerSecond": "{rate} por segundo",
+    "active": "Activo",
+    "cancelled": "Cancelado"
   }
 }

@@ -3,6 +3,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getNgo, type NgoProfile, type Stream } from '@/lib/api';
 
+vi.mock('next-intl/server', async () => {
+  const { createTranslator } = await vi.importActual<typeof import('next-intl')>('next-intl');
+  const { default: messages } = await import('../../../../../messages/en.json');
+
+  return {
+    getLocale: async () => 'en',
+    getTranslations: async () =>
+      createTranslator({
+        locale: 'en',
+        messages: { NgoProfile: messages.NgoProfile },
+        namespace: 'NgoProfile',
+      }),
+  };
+});
+
 vi.mock('@/components/wallet/WalletProvider', () => ({
   useWallet: () => ({
     address: null,
