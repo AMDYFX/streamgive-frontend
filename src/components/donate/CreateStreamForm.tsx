@@ -75,42 +75,18 @@ export function CreateStreamForm({
   // this" snapshot.
   const [confirmationEndDate, setConfirmationEndDate] = useState<Date | null>(null);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
-  const [walletBalance, setWalletBalance] = useState<string | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-  // getTokenBalance throws rather than resolving null on failure (a wrong
-  // network, an RPC outage and a non-token address all look identical
-  // otherwise) — balanceError means "couldn't check", distinct from
-  // walletBalance simply not having resolved yet. retryKey re-runs the
-  // lookup without otherwise changing the effect's dependencies.
-  const [balanceError, setBalanceError] = useState(false);
   const [balanceRetryKey, setBalanceRetryKey] = useState(0);
-  // Native XLM and USDC are both Stellar Asset Contracts, which always use 7
-  // decimals, but a custom token can declare any value here — tokenDecimals
-  // is that token's real scale once looked up (issue #204). null means
-  // either "not a custom token" (no lookup needed, see the effect below) or
-  // "lookup still pending/failed" for one that is; decimalsError/Loading
-  // tell those two apart so the UI can block submission with a clear reason
-  // rather than silently falling back to the wrong scale.
-  const [tokenDecimals, setTokenDecimals] = useState<number | null>(TOKEN_DECIMALS);
-  const [decimalsLoading, setDecimalsLoading] = useState(false);
-  const [decimalsError, setDecimalsError] = useState(false);
-
-  const depositRaw = parseAmount(amount, tokenDecimals ?? TOKEN_DECIMALS);
-  const isAmountValid = depositRaw !== null;
-  const amountError = describeAmountError(amount, tokenDecimals ?? TOKEN_DECIMALS);
-
-  // Integer division truncates: a deposit that doesn't divide evenly by the
-  // duration leaves a remainder the per-second rate can't carry (issue
-  // #156). The deposit itself is still submitted in full -- the contract
-  // has no partial-deposit call -- so that remainder sits in the stream's
-  // balance until cancel/top-up rather than ever actually streaming out.
-  // Surfaced below so the donor sees the real effective total up front
-  // instead of only discovering the dust on cancel.
-  const rateRaw = depositRaw !== null ? depositRaw / BigInt(durationSeconds) : null;
-  const isRateValid = rateRaw !== null && rateRaw > 0n;
-  const effectiveStreamedRaw = rateRaw !== null ? rateRaw * BigInt(durationSeconds) : null;
-  const leftoverRaw =
-    depositRaw !== null && effectiveStreamedRaw !== null ? depositRaw - effectiveStreamedRaw : null;
+  const [decimalsLookup, setDecimalsLookup] = useState<{
+    tokenAddress: string;
+    decimals: number | null;
+  } | null>(null);
+  const [balanceLookup, setBalanceLookup] = useState<{
+    address: string;
+    tokenAddress: string;
+    retryKey: number;
+    balance: string | null;
+    error: boolean;
+  } | null>(null);
 
   const STELLAR_CONTRACT_RE = /^C[A-Z2-7]{55}$/;
   const customTokenTrimmed = customToken.trim();
@@ -134,6 +110,47 @@ export function CreateStreamForm({
         : isCustomTokenFormatValid && customTokenTrimmed.length > 0
           ? customTokenTrimmed
           : null;
+
+  // A result belongs only to the token or wallet request that produced it.
+  // A changed selection or retry renders as loading immediately, without an
+  // effect first clearing stale state in a second render.
+  const currentDecimalsLookup =
+    tokenChoice === 'custom' && selectedTokenAddress === decimalsLookup?.tokenAddress
+      ? decimalsLookup
+      : null;
+  const tokenDecimals =
+    tokenChoice === 'custom' ? (currentDecimalsLookup?.decimals ?? null) : TOKEN_DECIMALS;
+  const decimalsLoading = tokenChoice === 'custom' && selectedTokenAddress !== null && !currentDecimalsLookup;
+  const decimalsError = currentDecimalsLookup !== null && currentDecimalsLookup.decimals === null;
+
+  const currentBalanceLookup =
+    address &&
+    selectedTokenAddress &&
+    balanceLookup?.address === address &&
+    balanceLookup.tokenAddress === selectedTokenAddress &&
+    balanceLookup.retryKey === balanceRetryKey
+      ? balanceLookup
+      : null;
+  const walletBalance = currentBalanceLookup?.balance ?? null;
+  const balanceLoading = Boolean(address && selectedTokenAddress && !currentBalanceLookup);
+  const balanceError = currentBalanceLookup?.error ?? false;
+
+  const depositRaw = parseAmount(amount, tokenDecimals ?? TOKEN_DECIMALS);
+  const isAmountValid = depositRaw !== null;
+  const amountError = describeAmountError(amount, tokenDecimals ?? TOKEN_DECIMALS);
+
+  // Integer division truncates: a deposit that doesn't divide evenly by the
+  // duration leaves a remainder the per-second rate can't carry (issue
+  // #156). The deposit itself is still submitted in full -- the contract
+  // has no partial-deposit call -- so that remainder sits in the stream's
+  // balance until cancel/top-up rather than ever actually streaming out.
+  // Surfaced below so the donor sees the real effective total up front
+  // instead of only discovering the dust on cancel.
+  const rateRaw = depositRaw !== null ? depositRaw / BigInt(durationSeconds) : null;
+  const isRateValid = rateRaw !== null && rateRaw > 0n;
+  const effectiveStreamedRaw = rateRaw !== null ? rateRaw * BigInt(durationSeconds) : null;
+  const leftoverRaw =
+    depositRaw !== null && effectiveStreamedRaw !== null ? depositRaw - effectiveStreamedRaw : null;
 
   // For native XLM, reserve 1 XLM base account reserve + 0.1 XLM estimated fee buffer
   // so donors cannot deposit funds needed to cover transaction fees and minimum reserve.
@@ -166,39 +183,15 @@ export function CreateStreamForm({
   // rather than customToken directly so a half-typed address (still failing
   // the StrKey format check) doesn't fire a lookup against a non-address.
   useEffect(() => {
-    if (tokenChoice !== 'custom') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTokenDecimals(TOKEN_DECIMALS);
-      setDecimalsLoading(false);
-      setDecimalsError(false);
-      return;
-    }
-    if (!selectedTokenAddress) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTokenDecimals(null);
-      setDecimalsLoading(false);
-      setDecimalsError(false);
-      return;
-    }
+    if (tokenChoice !== 'custom' || !selectedTokenAddress) return;
 
     let cancelled = false;
-    setTokenDecimals(null);
-    setDecimalsError(false);
-    setDecimalsLoading(true);
-
     getTokenDecimals(selectedTokenAddress)
       .then((decimals) => {
-        if (cancelled) return;
-        if (decimals === null) {
-          setDecimalsError(true);
-        } else {
-          setTokenDecimals(decimals);
-        }
+        if (!cancelled) setDecimalsLookup({ tokenAddress: selectedTokenAddress, decimals });
       })
-      .finally(() => {
-        if (!cancelled) {
-          setDecimalsLoading(false);
-        }
+      .catch(() => {
+        if (!cancelled) setDecimalsLookup({ tokenAddress: selectedTokenAddress, decimals: null });
       });
 
     return () => {
@@ -207,33 +200,30 @@ export function CreateStreamForm({
   }, [tokenChoice, selectedTokenAddress]);
 
   useEffect(() => {
-    if (!address || !selectedTokenAddress) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setWalletBalance(null);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBalanceError(false);
-      return;
-    }
+    if (!address || !selectedTokenAddress) return;
 
     let cancelled = false;
-    setBalanceLoading(true);
-    setWalletBalance(null);
-    setBalanceError(false);
-
     getTokenBalance(selectedTokenAddress, address)
       .then((balance) => {
         if (!cancelled) {
-          setWalletBalance(balance);
+          setBalanceLookup({
+            address,
+            tokenAddress: selectedTokenAddress,
+            retryKey: balanceRetryKey,
+            balance,
+            error: false,
+          });
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setBalanceError(true);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setBalanceLoading(false);
+          setBalanceLookup({
+            address,
+            tokenAddress: selectedTokenAddress,
+            retryKey: balanceRetryKey,
+            balance: null,
+            error: true,
+          });
         }
       });
 
@@ -243,6 +233,12 @@ export function CreateStreamForm({
   }, [address, selectedTokenAddress, balanceRetryKey]);
 
   const durationLabel = tDuration(`seconds${durationSeconds}`);
+
+  function handleTokenChoiceChange(choice: TokenChoice): void {
+    setTokenChoice(choice);
+    setDecimalsLookup(null);
+    setBalanceLookup(null);
+  }
 
   function handleMaxClick(): void {
     if (maxSpendableRaw === null || maxSpendableRaw <= 0n) {
@@ -314,7 +310,7 @@ export function CreateStreamForm({
       showToast('success', `Stream #${newStreamId} created!`, txToastAction(sent, tx));
       setAmount('');
       setDurationSeconds(DURATIONS[1].seconds);
-      setTokenChoice('native');
+      handleTokenChoiceChange('native');
       setCustomToken('');
       if (ngoId) {
         router.push(`/ngos/${ngoId}/donate/success?streamId=${newStreamId}`);
@@ -366,7 +362,7 @@ export function CreateStreamForm({
               type="radio"
               name="token"
               checked={tokenChoice === 'native'}
-              onChange={() => setTokenChoice('native')}
+              onChange={() => handleTokenChoiceChange('native')}
             />
             XLM (native)
           </label>
@@ -375,7 +371,7 @@ export function CreateStreamForm({
               type="radio"
               name="token"
               checked={tokenChoice === 'usdc'}
-              onChange={() => setTokenChoice('usdc')}
+              onChange={() => handleTokenChoiceChange('usdc')}
             />
             USDC
           </label>
@@ -384,7 +380,7 @@ export function CreateStreamForm({
               type="radio"
               name="token"
               checked={tokenChoice === 'custom'}
-              onChange={() => setTokenChoice('custom')}
+              onChange={() => handleTokenChoiceChange('custom')}
             />
             Custom asset
           </label>
@@ -394,7 +390,11 @@ export function CreateStreamForm({
             <input
               type="text"
               value={customToken}
-              onChange={(event) => setCustomToken(event.target.value)}
+              onChange={(event) => {
+                setCustomToken(event.target.value);
+                setDecimalsLookup(null);
+                setBalanceLookup(null);
+              }}
               placeholder="Token contract address (C...)"
               aria-invalid={!isCustomTokenFormatValid || undefined}
               aria-describedby={!isCustomTokenFormatValid ? 'custom-token-error' : undefined}

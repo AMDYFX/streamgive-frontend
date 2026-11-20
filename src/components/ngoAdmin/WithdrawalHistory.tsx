@@ -13,6 +13,18 @@ const PAGE_SIZE = 10;
  * Fetches once on mount and again if `ngoId` changes.
  */
 export function WithdrawalHistory({ ngoId }: { ngoId: string }) {
+  const [retryKey, setRetryKey] = useState(0);
+
+  return (
+    <WithdrawalHistoryContent
+      key={`${ngoId}:${retryKey}`}
+      ngoId={ngoId}
+      onRetry={() => setRetryKey((key) => key + 1)}
+    />
+  );
+}
+
+function WithdrawalHistoryContent({ ngoId, onRetry }: { ngoId: string; onRetry: () => void }) {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   // Starts true: the fetch below begins on the very first render, so this
@@ -23,21 +35,10 @@ export function WithdrawalHistory({ ngoId }: { ngoId: string }) {
   // the API returns the whole history in one response, so paging it is
   // just rendering a growing slice of what's already fetched.
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  // Incrementing retryKey re-runs the fetch effect without changing ngoId.
-  const [retryKey, setRetryKey] = useState(0);
-
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
 
-    // Reset the request status when the NGO changes or a retry starts,
-    // before the asynchronous result arrives.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoadError(false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVisibleCount(PAGE_SIZE);
     getWithdrawals(ngoId, controller.signal)
       .then((data) => {
         if (!cancelled) {
@@ -59,7 +60,7 @@ export function WithdrawalHistory({ ngoId }: { ngoId: string }) {
       cancelled = true;
       controller.abort();
     };
-  }, [ngoId, retryKey]);
+  }, [ngoId]);
 
   const visibleWithdrawals = withdrawals?.slice(0, visibleCount) ?? [];
   const hasMore = withdrawals !== null && visibleCount < withdrawals.length;
@@ -81,7 +82,7 @@ export function WithdrawalHistory({ ngoId }: { ngoId: string }) {
           </p>
           <button
             type="button"
-            onClick={() => setRetryKey((k) => k + 1)}
+            onClick={onRetry}
             className="mt-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
           >
             Retry
