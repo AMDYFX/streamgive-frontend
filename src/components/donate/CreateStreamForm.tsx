@@ -174,7 +174,6 @@ export function CreateStreamForm({
       return;
     }
     if (!selectedTokenAddress) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTokenDecimals(null);
       setDecimalsLoading(false);
       setDecimalsError(false);
@@ -210,7 +209,6 @@ export function CreateStreamForm({
     if (!address || !selectedTokenAddress) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setWalletBalance(null);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBalanceError(false);
       return;
     }

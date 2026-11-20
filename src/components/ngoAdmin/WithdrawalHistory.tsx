@@ -36,9 +36,7 @@ export function WithdrawalHistory({ ngoId }: { ngoId: string }) {
     // before the asynchronous result arrives.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError(false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleCount(PAGE_SIZE);
     getWithdrawals(ngoId, controller.signal)
       .then((data) => {

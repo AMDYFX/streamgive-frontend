@@ -36,7 +36,7 @@ function normalizeApplicationPage(value: unknown): { applications: NgoApplicatio
 export default function PlatformAdminPage() {
   const locale = useLocale();
   const { address, signMessage } = useWallet();
-  const { client, ready, initError, retryInit } = useNgoRegistryClient();
+  const { client, initError, retryInit } = useNgoRegistryClient();
   const { showToast } = useToast();
   const [applications, setApplications] = useState<NgoApplication[]>([]);
   const [totalApplications, setTotalApplications] = useState(0);
