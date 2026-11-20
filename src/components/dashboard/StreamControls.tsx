@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { useToast } from '@/components/toast/ToastProvider';
@@ -57,6 +58,7 @@ export function StreamControls({
   const { address } = useWallet();
   const { client, ready } = useDonationVaultClient();
   const { showToast } = useToast();
+  const tDuration = useTranslations('Durations');
   const [mode, setMode] = useState<Mode>('idle');
   const [pending, setPending] = useState<PendingAction>(null);
   const [durationSeconds, setDurationSeconds] = useState(DURATIONS[1].seconds);
@@ -297,7 +299,7 @@ export function StreamControls({
           >
             {DURATIONS.map((d) => (
               <option key={d.seconds} value={d.seconds}>
-                {d.label}
+                {tDuration(`seconds${d.seconds}`)}
               </option>
             ))}
           </select>

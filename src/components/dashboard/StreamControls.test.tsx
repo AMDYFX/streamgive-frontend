@@ -1,10 +1,23 @@
-import { render, screen } from '@testing-library/react';
+import { render as renderWithTestingLibrary, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import enMessages from '../../../messages/en.json';
 import type { Stream } from '@/lib/api';
 
 import { StreamControls, computeModifyRate } from './StreamControls';
+
+function render(ui: ReactElement) {
+  return renderWithTestingLibrary(ui, {
+    wrapper: ({ children }) => (
+      <NextIntlClientProvider locale="en" messages={{ Durations: enMessages.Durations }}>
+        {children}
+      </NextIntlClientProvider>
+    ),
+  });
+}
 
 const DONOR_ADDRESS = 'G' + 'D'.repeat(55);
 

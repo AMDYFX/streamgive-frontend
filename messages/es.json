@@ -23,5 +23,11 @@
   },
   "LocaleSwitcher": {
     "label": "Idioma"
+  },
+  "Durations": {
+    "seconds604800": "1 semana",
+    "seconds2592000": "1 mes",
+    "seconds7776000": "3 meses",
+    "seconds31536000": "1 año"
   }
 }

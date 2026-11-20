@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
@@ -54,6 +55,7 @@ export function CreateStreamForm({
   ngoName?: string;
 }) {
   const router = useRouter();
+  const tDuration = useTranslations('Durations');
   const { address, networkMismatch } = useWallet();
   const { client, ready } = useDonationVaultClient();
   const { showToast } = useToast();
@@ -240,8 +242,7 @@ export function CreateStreamForm({
     };
   }, [address, selectedTokenAddress, balanceRetryKey]);
 
-  const durationLabel =
-    DURATIONS.find((d) => d.seconds === durationSeconds)?.label ?? `${durationSeconds}s`;
+  const durationLabel = tDuration(`seconds${durationSeconds}`);
 
   function handleMaxClick(): void {
     if (maxSpendableRaw === null || maxSpendableRaw <= 0n) {
@@ -503,7 +504,7 @@ export function CreateStreamForm({
         >
           {DURATIONS.map((d) => (
             <option key={d.seconds} value={d.seconds}>
-              {d.label}
+              {tDuration(`seconds${d.seconds}`)}
             </option>
           ))}
         </select>
