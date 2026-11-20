@@ -180,6 +180,18 @@ export function describeAmountError(
   input: string,
   decimals: number = TOKEN_DECIMALS,
 ): string | null {
+  const reason = getAmountErrorReason(input, decimals);
+  if (reason === 'invalid') return 'Enter a valid amount.';
+  if (reason === 'precision') return `Use at most ${decimals} decimal places.`;
+  if (reason === 'nonPositive') return 'Enter an amount greater than 0.';
+  return null;
+}
+
+/** A locale-independent reason callers can use to translate amount errors. */
+export function getAmountErrorReason(
+  input: string,
+  decimals: number = TOKEN_DECIMALS,
+): 'invalid' | 'precision' | 'nonPositive' | null {
   const trimmed = input.trim();
   if (trimmed === '') {
     return null;
@@ -187,17 +199,17 @@ export function describeAmountError(
 
   const match = /^(\d*)(?:\.(\d*))?$/.exec(trimmed);
   if (!match || (match[1] === '' && (match[2] ?? '') === '')) {
-    return 'Enter a valid amount.';
+    return 'invalid';
   }
 
   const [, whole, fraction = ''] = match;
   if (fraction.length > decimals) {
-    return `Use at most ${decimals} decimal places.`;
+    return 'precision';
   }
 
   const raw = BigInt((whole || '0') + fraction.padEnd(decimals, '0'));
   if (raw <= 0n) {
-    return 'Enter an amount greater than 0.';
+    return 'nonPositive';
   }
 
   return null;

@@ -12,7 +12,13 @@ import { CreateStreamForm } from './CreateStreamForm';
 function render(ui: ReactElement) {
   return renderWithTestingLibrary(ui, {
     wrapper: ({ children }) => (
-      <NextIntlClientProvider locale="en" messages={{ Durations: enMessages.Durations }}>
+      <NextIntlClientProvider
+        locale="en"
+        messages={{
+          Durations: enMessages.Durations,
+          CreateStreamForm: enMessages.CreateStreamForm,
+        }}
+      >
         {children}
       </NextIntlClientProvider>
     ),
