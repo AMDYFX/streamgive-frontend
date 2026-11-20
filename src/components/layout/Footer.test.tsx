@@ -1,11 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 import { Footer } from './Footer';
 
 describe('Footer', () => {
   it('links to the GitHub organization and docs in a new tab, with an accessible cue', () => {
-    render(<Footer />);
+    renderWithIntl(<Footer />);
 
     const github = screen.getByRole('link', { name: /^GitHub/ });
     expect(github).toHaveAttribute('href', 'https://github.com/streamgive');
@@ -19,7 +21,7 @@ describe('Footer', () => {
   });
 
   it('links to GitHub issues for contact, with an accessible cue', () => {
-    render(<Footer />);
+    renderWithIntl(<Footer />);
 
     const contact = screen.getByRole('link', { name: /^Contact/ });
     expect(contact).toHaveAttribute(
@@ -31,7 +33,7 @@ describe('Footer', () => {
   });
 
   it('links to internal privacy and terms pages without a new-tab cue', () => {
-    render(<Footer />);
+    renderWithIntl(<Footer />);
 
     const privacy = screen.getByRole('link', { name: 'Privacy' });
     expect(privacy).toHaveAttribute('href', '/privacy');
@@ -40,5 +42,21 @@ describe('Footer', () => {
     const terms = screen.getByRole('link', { name: 'Terms' });
     expect(terms).toHaveAttribute('href', '/terms');
     expect(terms).not.toHaveAttribute('target');
+  });
+
+  it('shows Spanish link labels and the new-tab cue', () => {
+    renderWithIntl(<Footer />, 'es');
+
+    expect(
+      screen.getByText('StreamGive — de código abierto, desarrollado sobre Stellar.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Documentación (se abre en una pestaña nueva)' }),
+    ).toHaveAttribute('href', 'https://github.com/streamgive/streamgive-docs');
+    expect(
+      screen.getByRole('link', { name: 'Contacto (se abre en una pestaña nueva)' }),
+    ).toHaveAttribute('href', 'https://github.com/streamgive/streamgive-frontend/issues/new');
+    expect(screen.getByRole('link', { name: 'Privacidad' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Términos' })).toHaveAttribute('href', '/terms');
   });
 });

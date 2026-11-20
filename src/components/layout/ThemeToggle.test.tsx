@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { THEME_STORAGE_KEY } from '@/lib/theme';
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 import { ThemeToggle } from './ThemeToggle';
 
@@ -36,7 +37,7 @@ describe('ThemeToggle', () => {
     mockSystemTheme(true);
     localStorage.setItem(THEME_STORAGE_KEY, 'light');
     document.documentElement.classList.add('light');
-    render(<ThemeToggle />);
+    renderWithIntl(<ThemeToggle />);
 
     await user.click(screen.getByRole('button', { name: 'Switch to dark mode' }));
 
@@ -69,7 +70,7 @@ describe('ThemeToggle', () => {
       // Simulate the class set before hydration; theme.test.ts covers the script itself.
       document.documentElement.classList.add(stored);
 
-      render(<ThemeToggle />);
+      renderWithIntl(<ThemeToggle />);
 
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
       expect(document.documentElement).toHaveClass(stored);
@@ -86,7 +87,7 @@ describe('ThemeToggle', () => {
       });
     }
 
-    render(<ThemeToggle />);
+    renderWithIntl(<ThemeToggle />);
 
     await user.click(screen.getByRole('button', { name: 'Switch to light mode' }));
     expect(document.documentElement).toHaveClass('light');

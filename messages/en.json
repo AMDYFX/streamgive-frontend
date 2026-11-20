@@ -23,5 +23,43 @@
   },
   "LocaleSwitcher": {
     "label": "Language"
+  },
+  "Header": {
+    "brand": "StreamGive",
+    "skipToContent": "Skip to content",
+    "mainNavigation": "Main",
+    "mobileNavigation": "Mobile",
+    "toggleMenu": "Toggle menu",
+    "exploreNgos": "Explore NGOs",
+    "dashboard": "Dashboard",
+    "impact": "Impact",
+    "applyAsNgo": "Apply as NGO",
+    "ngoAdmin": "NGO Admin",
+    "platformAdmin": "Platform Admin"
+  },
+  "Footer": {
+    "tagline": "StreamGive — open source, built on Stellar.",
+    "github": "GitHub",
+    "docs": "Docs",
+    "contact": "Contact",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "newTabCue": "(opens in a new tab)"
+  },
+  "WalletButton": {
+    "connectWallet": "Connect Wallet",
+    "connecting": "Connecting…",
+    "connectedAs": "Connected as {address}. Click to disconnect.",
+    "wrongNetwork": "Wrong network",
+    "wrongNetworkHelp": "Your wallet is on a different network. Switch it to {network} before making transactions.",
+    "noWalletDetected": "No wallet detected",
+    "installWallet": "Install one of these, then try again:",
+    "dismiss": "Dismiss"
+  },
+  "ThemeToggle": {
+    "toggleTheme": "Toggle theme",
+    "switchToDark": "Switch to dark mode",
+    "switchToSystem": "Switch to system mode",
+    "switchToLight": "Switch to light mode"
   }
 }

@@ -23,5 +23,43 @@
   },
   "LocaleSwitcher": {
     "label": "Idioma"
+  },
+  "Header": {
+    "brand": "StreamGive",
+    "skipToContent": "Ir al contenido",
+    "mainNavigation": "Principal",
+    "mobileNavigation": "Móvil",
+    "toggleMenu": "Abrir o cerrar el menú",
+    "exploreNgos": "Explorar ONG",
+    "dashboard": "Panel de donaciones",
+    "impact": "Impacto",
+    "applyAsNgo": "Postular como ONG",
+    "ngoAdmin": "Administración de ONG",
+    "platformAdmin": "Administración de la plataforma"
+  },
+  "Footer": {
+    "tagline": "StreamGive — de código abierto, desarrollado sobre Stellar.",
+    "github": "GitHub",
+    "docs": "Documentación",
+    "contact": "Contacto",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "newTabCue": "(se abre en una pestaña nueva)"
+  },
+  "WalletButton": {
+    "connectWallet": "Conectar billetera",
+    "connecting": "Conectando…",
+    "connectedAs": "Conectado como {address}. Haz clic para desconectar.",
+    "wrongNetwork": "Red incorrecta",
+    "wrongNetworkHelp": "Tu billetera está en otra red. Cámbiala a {network} antes de hacer transacciones.",
+    "noWalletDetected": "No se detectó ninguna billetera",
+    "installWallet": "Instala una de estas opciones y vuelve a intentarlo:",
+    "dismiss": "Cerrar"
+  },
+  "ThemeToggle": {
+    "toggleTheme": "Cambiar tema",
+    "switchToDark": "Cambiar al modo oscuro",
+    "switchToSystem": "Usar el tema del sistema",
+    "switchToLight": "Cambiar al modo claro"
   }
 }
