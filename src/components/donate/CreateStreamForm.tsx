@@ -1,7 +1,7 @@
 'use client';
 
-import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
@@ -10,12 +10,12 @@ import { useWallet } from '@/components/wallet/WalletProvider';
 import { useDonationVaultClient } from '@/lib/donationVaultClient';
 import { DURATIONS } from '@/lib/durations';
 import {
-  describeAmountError,
   formatAmount,
   formatAmountInput,
   formatDateTime,
   formatEstimatedFee,
   formatRate,
+  getAmountErrorReason,
   parseAmount,
   TOKEN_DECIMALS,
 } from '@/lib/format';
@@ -29,22 +29,14 @@ import {
   NETWORK_NAME,
   txToastAction,
 } from '@/lib/stellar';
-import { describeContractError } from '@/lib/contractTypes';
+import { DONATION_VAULT_ERRORS } from '@/lib/contractTypes';
 
 // Quick-fill shortcuts for the "Total amount" field, in whichever token is
 // currently selected (the field isn't pinned to a single currency, so
 // these are unitless multipliers rather than e.g. "$5").
 const PRESET_AMOUNTS = [5, 10, 25, 100];
-const NETWORK_MISMATCH_MESSAGE = `Your wallet is on the wrong network. Switch it to ${NETWORK_NAME} before starting a stream.`;
-
 type TokenChoice = 'native' | 'usdc' | 'custom';
 type SubmitState = 'idle' | 'confirming' | 'signing' | 'success' | 'error';
-
-const TOKEN_LABELS: Record<TokenChoice, string> = {
-  native: 'XLM (native)',
-  usdc: 'USDC',
-  custom: 'Custom asset',
-};
 
 export function CreateStreamForm({
   ngoAddress,
@@ -56,6 +48,9 @@ export function CreateStreamForm({
   ngoName?: string;
 }) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations('CreateStreamForm');
+  const tDuration = useTranslations('Durations');
   const { address, networkMismatch } = useWallet();
   const { client, ready } = useDonationVaultClient();
   const { showToast } = useToast();
@@ -75,42 +70,18 @@ export function CreateStreamForm({
   // this" snapshot.
   const [confirmationEndDate, setConfirmationEndDate] = useState<Date | null>(null);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
-  const [walletBalance, setWalletBalance] = useState<string | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-  // getTokenBalance throws rather than resolving null on failure (a wrong
-  // network, an RPC outage and a non-token address all look identical
-  // otherwise) — balanceError means "couldn't check", distinct from
-  // walletBalance simply not having resolved yet. retryKey re-runs the
-  // lookup without otherwise changing the effect's dependencies.
-  const [balanceError, setBalanceError] = useState(false);
   const [balanceRetryKey, setBalanceRetryKey] = useState(0);
-  // Native XLM and USDC are both Stellar Asset Contracts, which always use 7
-  // decimals, but a custom token can declare any value here — tokenDecimals
-  // is that token's real scale once looked up (issue #204). null means
-  // either "not a custom token" (no lookup needed, see the effect below) or
-  // "lookup still pending/failed" for one that is; decimalsError/Loading
-  // tell those two apart so the UI can block submission with a clear reason
-  // rather than silently falling back to the wrong scale.
-  const [tokenDecimals, setTokenDecimals] = useState<number | null>(TOKEN_DECIMALS);
-  const [decimalsLoading, setDecimalsLoading] = useState(false);
-  const [decimalsError, setDecimalsError] = useState(false);
-
-  const depositRaw = parseAmount(amount, tokenDecimals ?? TOKEN_DECIMALS);
-  const isAmountValid = depositRaw !== null;
-  const amountError = describeAmountError(amount, tokenDecimals ?? TOKEN_DECIMALS);
-
-  // Integer division truncates: a deposit that doesn't divide evenly by the
-  // duration leaves a remainder the per-second rate can't carry (issue
-  // #156). The deposit itself is still submitted in full -- the contract
-  // has no partial-deposit call -- so that remainder sits in the stream's
-  // balance until cancel/top-up rather than ever actually streaming out.
-  // Surfaced below so the donor sees the real effective total up front
-  // instead of only discovering the dust on cancel.
-  const rateRaw = depositRaw !== null ? depositRaw / BigInt(durationSeconds) : null;
-  const isRateValid = rateRaw !== null && rateRaw > 0n;
-  const effectiveStreamedRaw = rateRaw !== null ? rateRaw * BigInt(durationSeconds) : null;
-  const leftoverRaw =
-    depositRaw !== null && effectiveStreamedRaw !== null ? depositRaw - effectiveStreamedRaw : null;
+  const [decimalsLookup, setDecimalsLookup] = useState<{
+    tokenAddress: string;
+    decimals: number | null;
+  } | null>(null);
+  const [balanceLookup, setBalanceLookup] = useState<{
+    address: string;
+    tokenAddress: string;
+    retryKey: number;
+    balance: string | null;
+    error: boolean;
+  } | null>(null);
 
   const STELLAR_CONTRACT_RE = /^C[A-Z2-7]{55}$/;
   const customTokenTrimmed = customToken.trim();
@@ -134,6 +105,55 @@ export function CreateStreamForm({
         : isCustomTokenFormatValid && customTokenTrimmed.length > 0
           ? customTokenTrimmed
           : null;
+
+  // A result belongs only to the token or wallet request that produced it.
+  // A changed selection or retry renders as loading immediately, without an
+  // effect first clearing stale state in a second render.
+  const currentDecimalsLookup =
+    tokenChoice === 'custom' && selectedTokenAddress === decimalsLookup?.tokenAddress
+      ? decimalsLookup
+      : null;
+  const tokenDecimals =
+    tokenChoice === 'custom' ? (currentDecimalsLookup?.decimals ?? null) : TOKEN_DECIMALS;
+  const decimalsLoading = tokenChoice === 'custom' && selectedTokenAddress !== null && !currentDecimalsLookup;
+  const decimalsError = currentDecimalsLookup !== null && currentDecimalsLookup.decimals === null;
+
+  const currentBalanceLookup =
+    address &&
+    selectedTokenAddress &&
+    balanceLookup?.address === address &&
+    balanceLookup.tokenAddress === selectedTokenAddress &&
+    balanceLookup.retryKey === balanceRetryKey
+      ? balanceLookup
+      : null;
+  const walletBalance = currentBalanceLookup?.balance ?? null;
+  const balanceLoading = Boolean(address && selectedTokenAddress && !currentBalanceLookup);
+  const balanceError = currentBalanceLookup?.error ?? false;
+
+  const depositRaw = parseAmount(amount, tokenDecimals ?? TOKEN_DECIMALS);
+  const isAmountValid = depositRaw !== null;
+  const amountErrorReason = getAmountErrorReason(amount, tokenDecimals ?? TOKEN_DECIMALS);
+  const amountError =
+    amountErrorReason === 'precision'
+      ? t('amountErrorPrecision', { decimals: tokenDecimals ?? TOKEN_DECIMALS })
+      : amountErrorReason === 'invalid'
+        ? t('amountErrorInvalid')
+        : amountErrorReason === 'nonPositive'
+          ? t('amountErrorNonPositive')
+          : null;
+
+  // Integer division truncates: a deposit that doesn't divide evenly by the
+  // duration leaves a remainder the per-second rate can't carry (issue
+  // #156). The deposit itself is still submitted in full -- the contract
+  // has no partial-deposit call -- so that remainder sits in the stream's
+  // balance until cancel/top-up rather than ever actually streaming out.
+  // Surfaced below so the donor sees the real effective total up front
+  // instead of only discovering the dust on cancel.
+  const rateRaw = depositRaw !== null ? depositRaw / BigInt(durationSeconds) : null;
+  const isRateValid = rateRaw !== null && rateRaw > 0n;
+  const effectiveStreamedRaw = rateRaw !== null ? rateRaw * BigInt(durationSeconds) : null;
+  const leftoverRaw =
+    depositRaw !== null && effectiveStreamedRaw !== null ? depositRaw - effectiveStreamedRaw : null;
 
   // For native XLM, reserve 1 XLM base account reserve + 0.1 XLM estimated fee buffer
   // so donors cannot deposit funds needed to cover transaction fees and minimum reserve.
@@ -166,38 +186,15 @@ export function CreateStreamForm({
   // rather than customToken directly so a half-typed address (still failing
   // the StrKey format check) doesn't fire a lookup against a non-address.
   useEffect(() => {
-    if (tokenChoice !== 'custom') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTokenDecimals(TOKEN_DECIMALS);
-      setDecimalsLoading(false);
-      setDecimalsError(false);
-      return;
-    }
-    if (!selectedTokenAddress) {
-      setTokenDecimals(null);
-      setDecimalsLoading(false);
-      setDecimalsError(false);
-      return;
-    }
+    if (tokenChoice !== 'custom' || !selectedTokenAddress) return;
 
     let cancelled = false;
-    setTokenDecimals(null);
-    setDecimalsError(false);
-    setDecimalsLoading(true);
-
     getTokenDecimals(selectedTokenAddress)
       .then((decimals) => {
-        if (cancelled) return;
-        if (decimals === null) {
-          setDecimalsError(true);
-        } else {
-          setTokenDecimals(decimals);
-        }
+        if (!cancelled) setDecimalsLookup({ tokenAddress: selectedTokenAddress, decimals });
       })
-      .finally(() => {
-        if (!cancelled) {
-          setDecimalsLoading(false);
-        }
+      .catch(() => {
+        if (!cancelled) setDecimalsLookup({ tokenAddress: selectedTokenAddress, decimals: null });
       });
 
     return () => {
@@ -206,32 +203,30 @@ export function CreateStreamForm({
   }, [tokenChoice, selectedTokenAddress]);
 
   useEffect(() => {
-    if (!address || !selectedTokenAddress) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setWalletBalance(null);
-      setBalanceError(false);
-      return;
-    }
+    if (!address || !selectedTokenAddress) return;
 
     let cancelled = false;
-    setBalanceLoading(true);
-    setWalletBalance(null);
-    setBalanceError(false);
-
     getTokenBalance(selectedTokenAddress, address)
       .then((balance) => {
         if (!cancelled) {
-          setWalletBalance(balance);
+          setBalanceLookup({
+            address,
+            tokenAddress: selectedTokenAddress,
+            retryKey: balanceRetryKey,
+            balance,
+            error: false,
+          });
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setBalanceError(true);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setBalanceLoading(false);
+          setBalanceLookup({
+            address,
+            tokenAddress: selectedTokenAddress,
+            retryKey: balanceRetryKey,
+            balance: null,
+            error: true,
+          });
         }
       });
 
@@ -240,8 +235,13 @@ export function CreateStreamForm({
     };
   }, [address, selectedTokenAddress, balanceRetryKey]);
 
-  const durationLabel =
-    DURATIONS.find((d) => d.seconds === durationSeconds)?.label ?? `${durationSeconds}s`;
+  const durationLabel = tDuration(`seconds${durationSeconds}`);
+
+  function handleTokenChoiceChange(choice: TokenChoice): void {
+    setTokenChoice(choice);
+    setDecimalsLookup(null);
+    setBalanceLookup(null);
+  }
 
   function handleMaxClick(): void {
     if (maxSpendableRaw === null || maxSpendableRaw <= 0n) {
@@ -310,16 +310,27 @@ export function CreateStreamForm({
 
       setStreamId(newStreamId);
       setSubmitState('success');
-      showToast('success', `Stream #${newStreamId} created!`, txToastAction(sent, tx));
+      showToast(
+        'success',
+        t('streamCreatedToast', { streamId: newStreamId }),
+        txToastAction(sent, tx),
+      );
       setAmount('');
       setDurationSeconds(DURATIONS[1].seconds);
-      setTokenChoice('native');
+      handleTokenChoiceChange('native');
       setCustomToken('');
       if (ngoId) {
         router.push(`/ngos/${ngoId}/donate/success?streamId=${newStreamId}`);
       }
     } catch (err) {
-      setErrorMessage(describeContractError(err));
+      const rawError = err instanceof Error ? err.message : String(err);
+      const contractCode = Number(/Error\(Contract,\s*#(\d+)\)/.exec(rawError)?.[1]);
+      const knownContractError = Object.values(DONATION_VAULT_ERRORS).some(
+        (code) => code === contractCode,
+      );
+      setErrorMessage(
+        knownContractError ? t(`contractError${contractCode}`) : t('transactionFailed'),
+      );
       setSubmitState('error');
     } finally {
       setEstimatedFee(null);
@@ -329,11 +340,9 @@ export function CreateStreamForm({
   if (!DONATION_VAULT_CONTRACT_ID) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-800 dark:bg-amber-950">
-        <p className="font-medium text-amber-800 dark:text-amber-300">Widget not configured</p>
+        <p className="font-medium text-amber-800 dark:text-amber-300">{t('widgetNotConfigured')}</p>
         <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-          The donation contract address is missing. Set{' '}
-          <code className="font-mono">NEXT_PUBLIC_DONATION_VAULT_CONTRACT_ID</code> in the
-          deployment environment to enable donations.
+          {t('missingContract', { variable: 'NEXT_PUBLIC_DONATION_VAULT_CONTRACT_ID' })}
         </p>
       </div>
     );
@@ -342,50 +351,50 @@ export function CreateStreamForm({
   // We no longer return early here, as the user might want to create another stream.
 
   if (!address) {
-    return <ConnectWalletPrompt message="Connect your wallet to start a stream." />;
+    return <ConnectWalletPrompt message={t('connectWallet')} />;
   }
 
   return (
     <div className="space-y-8">
       {submitState === 'success' && streamId !== null && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-900 dark:bg-green-950">
-          <p className="font-medium text-green-800 dark:text-green-300">Stream started!</p>
+          <p className="font-medium text-green-800 dark:text-green-300">{t('streamStarted')}</p>
           <p className="mt-1 text-sm text-green-700 dark:text-green-400">
-            Stream #{streamId} is now active.
+            {t('streamActive', { streamId })}
           </p>
         </div>
       )}
 
       <form onSubmit={(event) => void handleSubmit(event)} className="max-w-md space-y-6">
       <fieldset>
-        <legend className="text-sm font-medium">Token</legend>
+        <legend className="text-sm font-medium">{t('token')}</legend>
         <div className="mt-2 flex gap-4 text-sm">
           <label className="flex items-center gap-2">
             <input
               type="radio"
               name="token"
               checked={tokenChoice === 'native'}
-              onChange={() => setTokenChoice('native')}
+              onChange={() => handleTokenChoiceChange('native')}
             />
-            XLM (native)
+            {t('nativeToken')}
           </label>
           <label className="flex items-center gap-2">
             <input
               type="radio"
               name="token"
               checked={tokenChoice === 'usdc'}
-              onChange={() => setTokenChoice('usdc')}
+              onChange={() => handleTokenChoiceChange('usdc')}
             />
-            USDC
+            {t('usdcToken')}
           </label>
           <label className="flex items-center gap-2">
             <input
               type="radio"
               name="token"
               checked={tokenChoice === 'custom'}
-              onChange={() => setTokenChoice('custom')}
+              onChange={() => handleTokenChoiceChange('custom')}
             />
-            Custom asset
+            {t('customAsset')}
           </label>
         </div>
         {tokenChoice === 'custom' && (
@@ -393,27 +402,30 @@ export function CreateStreamForm({
             <input
               type="text"
               value={customToken}
-              onChange={(event) => setCustomToken(event.target.value)}
-              placeholder="Token contract address (C...)"
+              onChange={(event) => {
+                setCustomToken(event.target.value);
+                setDecimalsLookup(null);
+                setBalanceLookup(null);
+              }}
+              placeholder={t('tokenContractAddress')}
+              aria-label={t('tokenContractAddress')}
               aria-invalid={!isCustomTokenFormatValid || undefined}
               aria-describedby={!isCustomTokenFormatValid ? 'custom-token-error' : undefined}
               className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:bg-gray-900 dark:focus-visible:ring-teal-400"
             />
             {!isCustomTokenFormatValid && (
               <p id="custom-token-error" className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                Must be a Stellar contract address starting with C followed by 55 uppercase letters
-                or digits 2–7.
+                {t('invalidTokenAddress')}
               </p>
             )}
             {isTokenValid && decimalsLoading && (
               <p role="status" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Checking this token&apos;s decimals…
+                {t('checkingTokenDecimals')}
               </p>
             )}
             {isTokenValid && decimalsError && (
               <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                Couldn&apos;t read this token&apos;s decimals — it may not be a valid token
-                contract. Streaming it is blocked until this can be confirmed.
+                {t('tokenDecimalsError')}
               </p>
             )}
           </>
@@ -421,7 +433,7 @@ export function CreateStreamForm({
       </fieldset>
 
       <div className="block">
-        <label htmlFor="amount" className="text-sm font-medium">Total amount</label>
+        <label htmlFor="amount" className="text-sm font-medium">{t('totalAmount')}</label>
         <input
           id="amount"
           type="number"
@@ -446,7 +458,7 @@ export function CreateStreamForm({
               key={preset}
               type="button"
               onClick={() => setAmount(String(preset))}
-              aria-label={`Set amount to ${preset}`}
+              aria-label={t('setAmountTo', { amount: preset })}
               className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:hover:bg-gray-800 dark:focus-visible:ring-teal-400"
             >
               {preset}
@@ -456,10 +468,10 @@ export function CreateStreamForm({
             type="button"
             onClick={handleMaxClick}
             disabled={maxSpendableRaw === null || maxSpendableRaw <= 0n}
-            aria-label="Set amount to max"
+            aria-label={t('setAmountToMax')}
             className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800 dark:focus-visible:ring-teal-400"
           >
-            Max
+            {t('max')}
           </button>
         </div>
 
@@ -470,32 +482,34 @@ export function CreateStreamForm({
         )}
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           {balanceLoading
-            ? 'Checking wallet balance…'
+            ? t('checkingWalletBalance')
             : walletBalance !== null
-              ? `Wallet balance: ${formatAmount(walletBalance, tokenDecimals ?? TOKEN_DECIMALS)}`
+              ? t('walletBalance', {
+                  amount: formatAmount(walletBalance, tokenDecimals ?? TOKEN_DECIMALS, locale),
+                })
               : null}
         </p>
         {balanceError && (
           <p className="mt-1 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
-            Couldn&apos;t check your balance.
+            {t('balanceError')}
             <button
               type="button"
               onClick={() => setBalanceRetryKey((key) => key + 1)}
               className="font-medium underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:focus-visible:ring-teal-400"
             >
-              Retry
+              {t('retry')}
             </button>
           </p>
         )}
         {insufficientBalance && (
           <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-            This exceeds your wallet balance — the transaction will fail.
+            {t('insufficientBalance')}
           </p>
         )}
       </div>
 
       <label className="block">
-        <span className="text-sm font-medium">Stream over</span>
+        <span className="text-sm font-medium">{t('streamOver')}</span>
         <select
           value={durationSeconds}
           onChange={(event) => setDurationSeconds(Number(event.target.value))}
@@ -503,7 +517,7 @@ export function CreateStreamForm({
         >
           {DURATIONS.map((d) => (
             <option key={d.seconds} value={d.seconds}>
-              {d.label}
+              {tDuration(`seconds${d.seconds}`)}
             </option>
           ))}
         </select>
@@ -512,23 +526,33 @@ export function CreateStreamForm({
       {isAmountValid && rateRaw !== null && (
         <p id={!isRateValid ? 'amount-error' : undefined} className="text-sm text-gray-500 dark:text-gray-400">
           {isRateValid
-            ? `That's roughly ${formatRate(rateRaw, tokenDecimals ?? TOKEN_DECIMALS)} per second.`
-            : 'That amount is too small to stream over this duration — try a shorter one.'}
+            ? t('estimatedRate', {
+                rate: formatRate(rateRaw, tokenDecimals ?? TOKEN_DECIMALS),
+              })
+            : t('rateTooLow')}
         </p>
       )}
 
       {isRateValid && leftoverRaw !== null && leftoverRaw > 0n && effectiveStreamedRaw !== null && (
         <p className="text-sm text-amber-700 dark:text-amber-400">
-          Only {formatAmount(effectiveStreamedRaw.toString(), tokenDecimals ?? TOKEN_DECIMALS)} of
-          your deposit will stream out at this rate; the remaining{' '}
-          {formatAmount(leftoverRaw.toString(), tokenDecimals ?? TOKEN_DECIMALS)} stays in the
-          stream&apos;s balance until you cancel or top up.
+          {t('streamRemainder', {
+            streamed: formatAmount(
+              effectiveStreamedRaw.toString(),
+              tokenDecimals ?? TOKEN_DECIMALS,
+              locale,
+            ),
+            remaining: formatAmount(
+              leftoverRaw.toString(),
+              tokenDecimals ?? TOKEN_DECIMALS,
+              locale,
+            ),
+          })}
         </p>
       )}
 
       {submitState === 'signing' && estimatedFee && (
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Estimated network fee: {estimatedFee}
+          {t('estimatedFee', { fee: estimatedFee })}
         </p>
       )}
 
@@ -538,7 +562,7 @@ export function CreateStreamForm({
 
       {networkMismatch && submitState !== 'confirming' && (
         <p role="alert" className="text-sm text-amber-700 dark:text-amber-400">
-          {NETWORK_MISMATCH_MESSAGE}
+          {t('networkMismatch', { network: NETWORK_NAME })}
         </p>
       )}
 
@@ -549,20 +573,26 @@ export function CreateStreamForm({
         className="w-full rounded-md bg-black px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200 dark:focus-visible:ring-teal-400"
       >
         {submitState === 'signing'
-          ? 'Confirm in your wallet…'
+          ? t('confirmInWallet')
           : submitState === 'confirming'
-            ? 'Reviewing…'
+            ? t('reviewing')
             : !ready
-              ? 'Preparing contract…'
+              ? t('preparingContract')
               : decimalsLoading
-                ? 'Checking token…'
-                : 'Review & Sign'}
+                ? t('checkingToken')
+                : t('reviewAndSign')}
       </button>
 
       {submitState === 'confirming' && confirmationEndDate && (
         <ConfirmDonationSummary
           ngoLabel={ngoName ?? ngoAddress}
-          tokenLabel={TOKEN_LABELS[tokenChoice]}
+          tokenLabel={t(
+            tokenChoice === 'native'
+              ? 'nativeToken'
+              : tokenChoice === 'usdc'
+                ? 'usdcToken'
+                : 'customAsset',
+          )}
           amount={amount}
           rateRaw={rateRaw}
           decimals={tokenDecimals ?? TOKEN_DECIMALS}
@@ -612,6 +642,7 @@ function ConfirmDonationSummary({
   onCancel: () => void;
 }) {
   const locale = useLocale();
+  const t = useTranslations('CreateStreamForm');
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -672,7 +703,7 @@ function ConfirmDonationSummary({
   }, [onCancel]);
 
   const perSecondRate =
-    rateRaw !== null ? `${formatRate(rateRaw, decimals)} / second` : '—';
+    rateRaw !== null ? t('ratePerSecond', { rate: formatRate(rateRaw, decimals) }) : '—';
 
   return (
     <div
@@ -688,35 +719,35 @@ function ConfirmDonationSummary({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="confirm-donation-heading" className="text-lg font-semibold">
-          Confirm your stream
+          {t('confirmHeading')}
         </h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Review the details below before signing in your wallet.
+          {t('confirmDescription')}
         </p>
 
         <dl className="mt-6 space-y-4 text-sm">
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">NGO</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('ngo')}</dt>
             <dd className="break-all text-right font-medium">{ngoLabel}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Token</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('token')}</dt>
             <dd className="font-medium">{tokenLabel}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Total amount</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('totalAmount')}</dt>
             <dd className="font-medium">{amount}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Rate</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('rate')}</dt>
             <dd className="font-medium">{perSecondRate}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Duration</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('duration')}</dt>
             <dd className="font-medium">{durationLabel}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Ends</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('ends')}</dt>
             <dd className="font-medium">
               {formatDateTime(effectiveEndDate.toISOString(), locale)}
             </dd>
@@ -725,7 +756,7 @@ function ConfirmDonationSummary({
 
         {networkMismatch && (
           <p role="alert" className="mt-6 text-sm text-amber-700 dark:text-amber-400">
-            {NETWORK_MISMATCH_MESSAGE}
+            {t('networkMismatch', { network: NETWORK_NAME })}
           </p>
         )}
 
@@ -735,7 +766,7 @@ function ConfirmDonationSummary({
             onClick={onCancel}
             className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:hover:bg-gray-800 dark:focus-visible:ring-teal-400"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"
@@ -744,7 +775,7 @@ function ConfirmDonationSummary({
             disabled={networkMismatch}
             className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200 dark:focus-visible:ring-teal-400"
           >
-            Confirm &amp; Sign
+            {t('confirmAndSign')}
           </button>
         </div>
       </div>

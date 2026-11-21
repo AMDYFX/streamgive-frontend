@@ -1,9 +1,10 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError, getApplicationStatus, submitNgoApplication } from '@/lib/api';
 import { NGO_REGISTRY_ERRORS } from '@/lib/contractTypes';
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 const OWNER_ADDRESS = 'G' + 'A'.repeat(55);
 
@@ -67,7 +68,7 @@ describe('ApplyPage', () => {
   it('hides the form until a wallet is connected', async () => {
     wallet.address = null;
     const user = userEvent.setup();
-    const { rerender } = render(<ApplyPage />);
+    const { rerender } = renderWithIntl(<ApplyPage />);
 
     expect(screen.getByText('Connect your wallet to apply.')).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
@@ -90,7 +91,7 @@ describe('ApplyPage', () => {
   it('keeps the form hidden while the wallet is connecting', () => {
     wallet.address = null;
     wallet.connecting = true;
-    render(<ApplyPage />);
+    renderWithIntl(<ApplyPage />);
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
@@ -106,7 +107,7 @@ describe('ApplyPage', () => {
       }),
     );
     const user = userEvent.setup();
-    render(<ApplyPage />);
+    renderWithIntl(<ApplyPage />);
     await fillRequiredFields(user);
     await user.type(screen.getByLabelText('Website (optional)'), 'https://garden.example.org');
     await user.type(screen.getByLabelText('Country (optional)'), '  Nigeria  ');
@@ -142,7 +143,7 @@ describe('ApplyPage', () => {
       const failingMock = failingCall === 'register' ? register : signAndSend;
       failingMock.mockRejectedValueOnce(new Error('Transaction rejected'));
       const user = userEvent.setup();
-      render(<ApplyPage />);
+      renderWithIntl(<ApplyPage />);
       await fillRequiredFields(user);
       await user.click(screen.getByRole('button', { name: 'Submit application' }));
 
@@ -165,7 +166,7 @@ describe('ApplyPage', () => {
         new Error(`Error(Contract, #${NGO_REGISTRY_ERRORS.ALREADY_REGISTERED})`),
       );
       const user = userEvent.setup();
-      render(<ApplyPage />);
+      renderWithIntl(<ApplyPage />);
       await fillRequiredFields(user);
       await user.click(screen.getByRole('button', { name: 'Submit application' }));
 
@@ -193,12 +194,29 @@ describe('ApplyPage', () => {
     );
 
     const user = userEvent.setup();
-    render(<ApplyPage />);
+    renderWithIntl(<ApplyPage />);
 
     await fillRequiredFields(user);
     await user.click(screen.getByRole('button', { name: 'Submit application' }));
 
     expect(await screen.findByText(/already pending review/i)).toBeInTheDocument();
     expect(screen.queryByText('Something went wrong.')).not.toBeInTheDocument();
+  });
+
+  it('translates form labels and the duplicate-application message in Spanish', async () => {
+    vi.mocked(submitNgoApplication).mockRejectedValue(
+      new ApiError('An application from this address is already pending review.', 409),
+    );
+    const user = userEvent.setup();
+    renderWithIntl(<ApplyPage />, 'es');
+
+    await user.type(screen.getByLabelText('Nombre de la organización'), 'Jardín comunitario');
+    await user.type(screen.getByRole('textbox', { name: /^Descripción/ }), 'Un jardín local');
+    await user.type(screen.getByLabelText('Correo de contacto'), 'jardin@example.org');
+    await user.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
+
+    expect(
+      await screen.findByText('Ya hay una solicitud de esta dirección pendiente de revisión.'),
+    ).toBeInTheDocument();
   });
 });

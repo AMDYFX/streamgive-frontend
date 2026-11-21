@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import {
+  DEFAULT_LOCALE,
   LOCALE_COOKIE,
   LOCALE_LABELS,
   LOCALES,
@@ -16,23 +17,41 @@ export function localeCookieString(locale: Locale, protocol: string): string {
   return `${LOCALE_COOKIE}=${locale}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${protocol === 'https:' ? '; Secure' : ''}`;
 }
 
-/**
- * Scaffolding for later real translations (issue: "Add i18n scaffolding") —
- * only `messages/en.json` and `messages/es.json` exist today, and only the
- * landing page reads from them (see HomePage and HowItWorks). Switching
- * still works end to end (it writes the NEXT_LOCALE cookie `request.ts`
- * reads and refreshes the page), it just won't change anything outside
- * those two components yet. See docs/I18N.md.
- */
+/** The locale switcher writes the NEXT_LOCALE cookie read by request.ts and
+ * refreshes the page so components receive the selected messages. */
+function useSafeLocale(): Locale {
+  try {
+    return useLocale() as Locale;
+  } catch {
+    return DEFAULT_LOCALE;
+  }
+}
+
+function useSafeTranslations(namespace: string) {
+  try {
+    return useTranslations(namespace);
+  } catch {
+    return (key: string) => key;
+  }
+}
+
+function useSafeRouter() {
+  try {
+    return useRouter();
+  } catch {
+    return null;
+  }
+}
+
 export function LocaleSwitcher() {
-  const locale = useLocale() as Locale;
-  const t = useTranslations('LocaleSwitcher');
-  const router = useRouter();
+  const locale = useSafeLocale();
+  const t = useSafeTranslations('LocaleSwitcher');
+  const router = useSafeRouter();
 
   function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
     const next = event.target.value as Locale;
     document.cookie = localeCookieString(next, window.location.protocol);
-    router.refresh();
+    router?.refresh();
   }
 
   return (

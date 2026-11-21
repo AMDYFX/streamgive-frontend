@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useState, useRef, type FormEvent } from 'react';
 
 import { ApplicationStatusPanel } from '@/components/apply/ApplicationStatusPanel';
@@ -30,6 +31,7 @@ function isAlreadyRegistered(err: unknown): boolean {
 }
 
 export default function ApplyPage() {
+  const t = useTranslations('Apply');
   const { address, connecting, connect } = useWallet();
   const { client, ready } = useNgoRegistryClient();
 
@@ -103,8 +105,8 @@ export default function ApplyPage() {
       if (!isAlreadyRegistered(err)) {
         setErrorMessage(
           err instanceof Error
-            ? `Could not register on-chain: ${err.message}`
-            : 'Could not register on-chain.',
+            ? t('registrationErrorDetail', { message: err.message })
+            : t('registrationError'),
         );
         setStatus('error');
         isSubmittingRef.current = false;
@@ -128,7 +130,13 @@ export default function ApplyPage() {
       setStatus('success');
       isSubmittingRef.current = false;
     } catch (err) {
-      setErrorMessage(err instanceof ApiError ? err.message : 'Something went wrong.');
+      setErrorMessage(
+        err instanceof ApiError
+          ? err.status === 409
+            ? t('alreadyPending')
+            : err.message
+          : t('unexpectedError'),
+      );
       setStatus('error');
       isSubmittingRef.current = false;
     }
@@ -139,10 +147,10 @@ export default function ApplyPage() {
       <main id="main" className="px-6 py-16 sm:px-12">
         <div className="max-w-md rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-900 dark:bg-green-950">
           <p className="font-medium text-green-800 dark:text-green-300">
-            Application submitted!
+            {t('submitted')}
           </p>
           <p className="mt-1 text-sm text-green-700 dark:text-green-400">
-            We&apos;ll review it and reach out at the contact email you provided.
+            {t('submittedHelp')}
           </p>
         </div>
       </main>
@@ -151,27 +159,24 @@ export default function ApplyPage() {
 
   return (
     <main id="main" className="px-6 py-16 sm:px-12">
-        <h1 className="text-2xl font-bold">Apply as an NGO</h1>
+        <h1 className="text-2xl font-bold">{t('heading')}</h1>
         <p className="mt-2 max-w-md text-sm text-gray-600 dark:text-gray-400">
-          Connect the wallet your organization will use to receive donations, then tell us about
-          your NGO. Submitting registers that address in the on-chain registry, so your wallet
-          will ask you to sign one transaction — that signature is what proves the address is
-          yours.
+          {t('intro')}
         </p>
 
         {!address && connecting ? (
           <p role="status" className="mt-8 text-gray-500 dark:text-gray-400">
-            Loading…
+            {t('loading')}
           </p>
         ) : !address ? (
           <div className="mt-8 max-w-md rounded-lg border border-gray-200 p-6 text-center dark:border-gray-800">
-            <p className="text-gray-600 dark:text-gray-400">Connect your wallet to apply.</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('connectPrompt')}</p>
             <button
               type="button"
               onClick={() => void connect()}
               className="mt-4 rounded-md bg-black px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
             >
-              Connect Wallet
+              {t('connectWallet')}
             </button>
           </div>
         ) : (
@@ -180,7 +185,7 @@ export default function ApplyPage() {
             {showForm && (
           <form onSubmit={(event) => void handleSubmit(event)} className="mt-8 max-w-md space-y-6">
             <label className="block">
-              <span className="text-sm font-medium">Organization name</span>
+              <span className="text-sm font-medium">{t('organizationName')}</span>
               <input
                 type="text"
                 autoComplete="organization"
@@ -193,7 +198,7 @@ export default function ApplyPage() {
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium">Description</span>
+              <span className="text-sm font-medium">{t('descriptionLabel')}</span>
               <textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
@@ -208,7 +213,7 @@ export default function ApplyPage() {
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium">Contact email</span>
+              <span className="text-sm font-medium">{t('contactEmail')}</span>
               <input
                 type="email"
                 autoComplete="email"
@@ -221,7 +226,7 @@ export default function ApplyPage() {
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium">Website (optional)</span>
+              <span className="text-sm font-medium">{t('websiteOptional')}</span>
               <input
                 type="url"
                 autoComplete="url"
@@ -234,7 +239,7 @@ export default function ApplyPage() {
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium">Country (optional)</span>
+              <span className="text-sm font-medium">{t('countryOptional')}</span>
               <input
                 type="text"
                 autoComplete="country-name"
@@ -246,12 +251,12 @@ export default function ApplyPage() {
             </label>
 
             <p className="text-xs break-all text-gray-500 dark:text-gray-400">
-              Applying as <span className="font-mono">{address}</span>
+              {t('applyingAs')} <span className="font-mono">{address}</span>
             </p>
 
             {status === 'registering' && estimatedFee && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Estimated network fee: {estimatedFee}
+                {t('estimatedFee', { fee: estimatedFee })}
               </p>
             )}
 
@@ -270,12 +275,12 @@ export default function ApplyPage() {
                 </svg>
               )}
               {status === 'registering'
-                ? 'Confirm in your wallet…'
+                ? t('confirmInWallet')
                 : status === 'submitting'
-                  ? 'Submitting…'
+                  ? t('submitting')
                   : !ready
-                    ? 'Preparing contract…'
-                    : 'Submit application'}
+                    ? t('preparingContract')
+                    : t('submitApplication')}
             </button>
           </form>
             )}

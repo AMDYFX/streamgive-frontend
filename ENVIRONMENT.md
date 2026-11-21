@@ -7,7 +7,7 @@ and are **not secret**. Never put credentials or private keys here.
 
 | Variable | Required | Default (from `.env.example`) | Description |
 |---|---|---|---|
-| `NEXT_PUBLIC_API_URL` | No | `http://localhost:3000` | Base URL of the `streamgive-backend` API. Change this to point at staging or production when deploying. |
+| `NEXT_PUBLIC_API_URL` | **Yes outside development** | `http://localhost:3000` in development | Base URL of the `streamgive-backend` API. Set it for staging and production builds; a missing or blank value raises a configuration error. |
 | `NEXT_PUBLIC_APP_URL` | No | `http://localhost:3001` | The app's own origin, used by `robots.ts` and `sitemap.ts` to build absolute URLs for SEO metadata. |
 | `NEXT_PUBLIC_SOROBAN_RPC_URL` | No | `https://soroban-testnet.stellar.org` | Stellar Soroban RPC endpoint used for all on-chain reads and contract calls. Must match the network of the deployed contracts. |
 | `NEXT_PUBLIC_NETWORK_PASSPHRASE` | No | `Test SDF Network ; September 2015` | Stellar network passphrase. Use `Public Global Stellar Network ; September 2015` for mainnet. |

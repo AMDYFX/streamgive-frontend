@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
@@ -9,7 +10,7 @@ import { StreamDetailsModal } from '@/components/streams/StreamDetailsModal';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { getStreams, type Stream } from '@/lib/api';
 import { buildDonationHistoryCsv } from '@/lib/csv';
-import { formatRemainingDuration, formatTokenAmount, formatTokenTotals } from '@/lib/format';
+import { formatTokenAmount, formatTokenTotals } from '@/lib/format';
 import { useLatestRequest } from '@/lib/useLatestRequest';
 
 // Client-side pagination over the already-fetched list — same interim
@@ -22,6 +23,7 @@ const PAGE_SIZE = 10;
 const POLL_INTERVAL_MS = 30_000;
 
 function LiveBalance({ stream }: { stream: Stream }) {
+  const t = useTranslations('Dashboard');
   const [estimatedBalance, setEstimatedBalance] = useState<bigint>(BigInt(stream.balance));
 
   useEffect(() => {
@@ -55,8 +57,8 @@ function LiveBalance({ stream }: { stream: Stream }) {
   }
 
   return (
-    <span title="Estimated current balance based on stream rate" className="border-b border-dotted border-gray-400 cursor-help">
-      {formatTokenAmount(estimatedBalance.toString(), stream.tokenAddress)} (est)
+    <span title={t('estimatedBalanceHelp')} className="border-b border-dotted border-gray-400 cursor-help">
+      {formatTokenAmount(estimatedBalance.toString(), stream.tokenAddress)} {t('estimated')}
     </span>
   );
 }
@@ -80,6 +82,7 @@ function downloadDonationHistoryCsv(streams: Stream[]): void {
 export type SortOrder = 'newest' | 'oldest' | 'largest-committed' | 'ending-soonest';
 
 export default function DashboardPage() {
+  const t = useTranslations('Dashboard');
   const { address } = useWallet();
   const [streams, setStreams] = useState<Stream[]>([]);
   // Starts true so a connected donor never sees the empty state in the
@@ -221,6 +224,17 @@ export default function DashboardPage() {
     })),
   );
   const activeCount = streams.filter((s) => s.status === 'ACTIVE').length;
+  const remainingTime = (stream: Stream) => {
+    const balance = BigInt(stream.balance);
+    if (balance <= 0n) return t('fullyDrained');
+    const rate = BigInt(stream.rate);
+    if (rate <= 0n) return '';
+    const seconds = Number(balance / rate);
+    if (seconds < 60) return t('secondsRemaining', { count: seconds });
+    if (seconds < 3600) return t('minutesRemaining', { count: Math.floor(seconds / 60) });
+    if (seconds < 86400) return t('hoursRemaining', { count: Math.floor(seconds / 3600) });
+    return t('daysRemaining', { count: Math.floor(seconds / 86400) });
+  };
   const trimmedSearchQuery = searchQuery.trim();
   const filteredStreams = streams.filter((s) => {
     if (filter === 'ACTIVE' && s.status !== 'ACTIVE') return false;
@@ -283,40 +297,40 @@ export default function DashboardPage() {
   return (
     <>
       <main id="main" className="px-6 py-16 sm:px-12">
-        <h1 className="text-2xl font-bold">Your donations</h1>
+        <h1 className="text-2xl font-bold">{t('heading')}</h1>
 
         {!address && (
-          <ConnectWalletPrompt className="mt-8" message="Connect your wallet to see your streams." />
+          <ConnectWalletPrompt className="mt-8" message={t('connectPrompt')} />
         )}
 
         {address && loading && (
           <p role="status" className="mt-8 text-gray-500 dark:text-gray-400">
-            Loading your streams…
+            {t('loading')}
           </p>
         )}
 
         {address && !loading && loadError && streams.length === 0 && (
           <div className="mt-8">
             <p className="text-red-600 dark:text-red-400">
-              Couldn&apos;t load your streams. Please check your connection and try again.
+              {t('loadError')}
             </p>
             <button
               type="button"
               onClick={refresh}
               className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
             >
-              Retry
+              {t('retry')}
             </button>
           </div>
         )}
 
         {address && !loading && !loadError && streams.length === 0 && (
           <p className="mt-8 text-gray-600 dark:text-gray-400">
-            You haven&apos;t started any streams yet.{' '}
+            {t('emptyBeforeLink')}{' '}
             <Link href="/ngos" className="underline">
-              Explore NGOs
+              {t('exploreNgos')}
             </Link>
-            .
+            {t('emptyAfterLink')}
           </p>
         )}
 
@@ -326,24 +340,24 @@ export default function DashboardPage() {
                 keep showing it rather than replacing it with an error. */}
             {loadError && (
               <p role="status" className="mb-4 text-sm text-amber-700 dark:text-amber-400">
-                Couldn&apos;t refresh — showing the last numbers we loaded.
+                {t('refreshError')}
               </p>
             )}
 
             <div className="flex flex-wrap items-start justify-between gap-4">
               <dl className="grid grid-cols-3 gap-6 sm:w-fit sm:grid-cols-3">
                 <div>
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Total streams</dt>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">{t('totalStreams', { count: streams.length })}</dt>
                   <dd className="text-lg font-semibold">{streams.length}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Total committed</dt>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">{t('totalCommitted')}</dt>
                   <dd className="text-lg font-semibold">
                     {totalCommitted}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Active streams</dt>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">{t('activeStreams', { count: activeCount })}</dt>
                   <dd className="text-lg font-semibold">{activeCount}</dd>
                 </div>
               </dl>
@@ -353,13 +367,13 @@ export default function DashboardPage() {
                 onClick={() => downloadDonationHistoryCsv(filteredStreams)}
                 className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
               >
-                Export CSV
+                {t('exportCsv')}
               </button>
 
             </div>
 
             <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800">
-              <div role="tablist" aria-label="Filter streams" className="flex gap-4">
+              <div role="tablist" aria-label={t('filterStreams')} className="flex gap-4">
                 <button
                   type="button"
                   role="tab"
@@ -367,7 +381,7 @@ export default function DashboardPage() {
                   onClick={() => handleFilterChange('ALL')}
                   className={`pb-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:focus-visible:ring-teal-400 ${filter === 'ALL' ? 'border-b-2 border-black text-black dark:border-white dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
                 >
-                  All
+                  {t('all')}
                 </button>
                 <button
                   type="button"
@@ -376,7 +390,7 @@ export default function DashboardPage() {
                   onClick={() => handleFilterChange('ACTIVE')}
                   className={`pb-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:focus-visible:ring-teal-400 ${filter === 'ACTIVE' ? 'border-b-2 border-black text-black dark:border-white dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
                 >
-                  Active
+                  {t('active')}
                 </button>
                 <button
                   type="button"
@@ -385,36 +399,36 @@ export default function DashboardPage() {
                   onClick={() => handleFilterChange('CANCELLED')}
                   className={`pb-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:focus-visible:ring-teal-400 ${filter === 'CANCELLED' ? 'border-b-2 border-black text-black dark:border-white dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
                 >
-                  Cancelled
+                  {t('cancelled')}
                 </button>
               </div>
 
               <div className="flex items-center gap-2 pb-2">
                 <label htmlFor="sort-order" className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Sort:
+                  {t('sortLabel')}
                 </label>
                 <select
                   id="sort-order"
-                  aria-label="Sort by"
+                  aria-label={t('sortBy')}
                   value={sortOrder}
                   onChange={(event) => handleSortChange(event.target.value as SortOrder)}
                   className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-900"
                 >
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                  <option value="largest-committed">Largest committed</option>
-                  <option value="ending-soonest">Ending soonest</option>
+                  <option value="newest">{t('newest')}</option>
+                  <option value="oldest">{t('oldest')}</option>
+                  <option value="largest-committed">{t('largestCommitted')}</option>
+                  <option value="ending-soonest">{t('endingSoonest')}</option>
                 </select>
               </div>
             </div>
 
             <label className="mt-4 block max-w-xs">
-              <span className="sr-only">Search by on-chain stream ID</span>
+              <span className="sr-only">{t('searchLabel')}</span>
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(event) => handleSearchChange(event.target.value)}
-                placeholder="Search by stream ID…"
+                placeholder={t('searchPlaceholder')}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
               />
             </label>
@@ -422,8 +436,8 @@ export default function DashboardPage() {
             {filteredStreams.length === 0 ? (
               <p className="mt-8 text-gray-600 dark:text-gray-400">
                 {trimmedSearchQuery
-                  ? `No streams match stream ID "${trimmedSearchQuery}".`
-                  : `No ${filter.toLowerCase()} streams found.`}
+                  ? t('noSearchResults', { query: trimmedSearchQuery })
+                  : t(filter === 'ACTIVE' ? 'noActiveStreams' : filter === 'CANCELLED' ? 'noCancelledStreams' : 'noStreams')}
               </p>
             ) : (
               <ul className="mt-6 space-y-4">
@@ -441,10 +455,10 @@ export default function DashboardPage() {
                         {stream.ngo.name}
                       </Link>
                       <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        {stream.status === 'ACTIVE' ? 'Active' : 'Cancelled'} · Balance{' '}
-                        <LiveBalance stream={stream} /> · Withdrawn {formatTokenAmount(stream.withdrawn, stream.tokenAddress)}
-                        {stream.status === 'ACTIVE' && formatRemainingDuration(stream.balance, stream.rate)
-                          ? ` · ${formatRemainingDuration(stream.balance, stream.rate)}`
+                        {t(stream.status === 'ACTIVE' ? 'active' : 'cancelled')} · {t('balance')}{' '}
+                        <LiveBalance stream={stream} /> · {t('withdrawn')} {formatTokenAmount(stream.withdrawn, stream.tokenAddress)}
+                        {stream.status === 'ACTIVE' && remainingTime(stream)
+                          ? ` · ${remainingTime(stream)}`
                           : ''}
                       </p>
                     </div>
@@ -454,7 +468,7 @@ export default function DashboardPage() {
                         onClick={() => setDetailsStream(stream)}
                         className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                       >
-                        View details
+                        {t('viewDetails')}
                       </button>
                       {stream.status === 'ACTIVE' && (
                         <StreamControls stream={stream} onChanged={refresh} />
@@ -473,7 +487,7 @@ export default function DashboardPage() {
                   onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
                   className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                 >
-                  Load more
+                  {t('loadMore')}
                 </button>
               </div>
             )}

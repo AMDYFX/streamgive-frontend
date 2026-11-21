@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 import { ConnectWalletButton } from './ConnectWalletButton';
 import { useWallet } from './WalletProvider';
@@ -43,7 +45,7 @@ describe('ConnectWalletButton disconnect flow', () => {
 
   it('shows the truncated address while connected, then returns to Connect Wallet after clicking disconnect', async () => {
     const user = userEvent.setup();
-    render(<ConnectWalletButton />);
+    renderWithIntl(<ConnectWalletButton />);
 
     const disconnectButton = screen.getByRole('button', {
       name: `Connected as ${ADDRESS}. Click to disconnect.`,
@@ -79,7 +81,7 @@ describe('ConnectWalletButton connecting state', () => {
       dismissNoWalletPrompt: vi.fn(),
     });
 
-    render(<ConnectWalletButton />);
+    renderWithIntl(<ConnectWalletButton />);
 
     // The connecting state renders as plain text (not a button), so there
     // is nothing clickable that could start a second connect() call.

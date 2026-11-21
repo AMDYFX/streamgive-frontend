@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
 import { CopyAddressButton } from '@/components/common/CopyAddressButton';
@@ -11,6 +11,7 @@ import { DONATION_VAULT_CONTRACT_ID, explorerUrl } from '@/lib/stellar';
 
 export function StreamDetailsModal({ stream, onClose }: { stream: Stream; onClose: () => void }) {
   const locale = useLocale();
+  const t = useTranslations('StreamDetails');
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -90,13 +91,13 @@ export function StreamDetailsModal({ stream, onClose }: { stream: Stream; onClos
       >
         <div className="flex items-center justify-between">
           <h2 id="stream-details-heading" className="text-lg font-semibold">
-            Stream details
+            {t('heading')}
           </h2>
           <button
             type="button"
             ref={closeButtonRef}
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('close')}
             className="text-xl leading-none text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
           >
             &times;
@@ -105,11 +106,11 @@ export function StreamDetailsModal({ stream, onClose }: { stream: Stream; onClos
 
         <dl className="mt-6 space-y-4 text-sm">
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Status</dt>
-            <dd className="font-medium">{stream.status === 'ACTIVE' ? 'Active' : 'Cancelled'}</dd>
+            <dt className="text-gray-500 dark:text-gray-400">{t('status')}</dt>
+            <dd className="font-medium">{t(stream.status === 'ACTIVE' ? 'active' : 'cancelled')}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">NGO</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('ngo')}</dt>
             <dd className="font-medium">
               <Link href={`/ngos/${stream.ngo.id}`} className="underline" onClick={onClose}>
                 {stream.ngo.name}
@@ -117,7 +118,7 @@ export function StreamDetailsModal({ stream, onClose }: { stream: Stream; onClos
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="shrink-0 text-gray-500 dark:text-gray-400">Donor</dt>
+            <dt className="shrink-0 text-gray-500 dark:text-gray-400">{t('donor')}</dt>
             <dd className="flex items-center justify-end gap-2 break-all text-right font-mono text-xs">
               <a
                 href={explorerUrl('account', stream.donor.address)}
@@ -131,7 +132,7 @@ export function StreamDetailsModal({ stream, onClose }: { stream: Stream; onClos
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="shrink-0 text-gray-500 dark:text-gray-400">Token</dt>
+            <dt className="shrink-0 text-gray-500 dark:text-gray-400">{t('token')}</dt>
             <dd className="flex items-center justify-end gap-2 break-all text-right font-mono text-xs">
               <a
                 href={explorerUrl('contract', stream.tokenAddress)}
@@ -146,7 +147,7 @@ export function StreamDetailsModal({ stream, onClose }: { stream: Stream; onClos
           </div>
           {DONATION_VAULT_CONTRACT_ID && (
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-gray-500 dark:text-gray-400">Contract</dt>
+              <dt className="text-gray-500 dark:text-gray-400">{t('contract')}</dt>
               <dd className="flex items-center justify-end gap-2 font-medium">
                 <a
                   href={explorerUrl('contract', DONATION_VAULT_CONTRACT_ID)}
@@ -154,34 +155,34 @@ export function StreamDetailsModal({ stream, onClose }: { stream: Stream; onClos
                   rel="noopener noreferrer"
                   className="underline"
                 >
-                  View contract
+                  {t('viewContract')}
                 </a>
                 <CopyAddressButton address={DONATION_VAULT_CONTRACT_ID} />
               </dd>
             </div>
           )}
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Rate</dt>
-            <dd className="font-medium">{formatTokenAmount(stream.rate, stream.tokenAddress)} / second</dd>
+            <dt className="text-gray-500 dark:text-gray-400">{t('rate')}</dt>
+            <dd className="font-medium">{t('perSecond', { amount: formatTokenAmount(stream.rate, stream.tokenAddress) })}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Balance</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('balance')}</dt>
             <dd className="font-medium">{formatTokenAmount(stream.balance, stream.tokenAddress)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Withdrawn</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('withdrawn')}</dt>
             <dd className="font-medium">{formatTokenAmount(stream.withdrawn, stream.tokenAddress)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Created</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('created')}</dt>
             <dd className="font-medium">{formatDateTime(stream.createdAt, locale)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">Last updated</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('lastUpdated')}</dt>
             <dd className="font-medium">{formatDateTime(stream.updatedAt, locale)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-gray-500 dark:text-gray-400">On-chain ID</dt>
+            <dt className="text-gray-500 dark:text-gray-400">{t('onChainId')}</dt>
             <dd className="flex items-center justify-end gap-2 font-medium">
               {stream.onChainId}
               <CopyAddressButton address={stream.onChainId} />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { useToast } from '@/components/toast/ToastProvider';
@@ -8,7 +8,7 @@ import { useWallet } from '@/components/wallet/WalletProvider';
 import { getStreams, type Stream } from '@/lib/api';
 import { describeContractError } from '@/lib/contractTypes';
 import { useDonationVaultClient } from '@/lib/donationVaultClient';
-import { describeAmountError, formatDate, formatEstimatedFee, formatRate, parseAmount } from '@/lib/format';
+import { describeAmountError, formatDate, formatEstimatedFee, formatRate, parseAmount, TOKEN_DECIMALS } from '@/lib/format';
 import { DURATIONS } from '@/lib/durations';
 import { txToastAction } from '@/lib/stellar';
 
@@ -30,8 +30,6 @@ export function computeModifyRate(balance: string, durationSeconds: number): big
 // an interval — a confirmed on-chain action can lag a few seconds before
 // onChanged()'s refresh actually reflects it. Said explicitly in the
 // success toast so it doesn't look like nothing happened.
-const INDEXING_LAG_NOTE = 'may take a few seconds to show below';
-
 type Mode = 'idle' | 'toppingUp' | 'modifying' | 'confirmingCancel';
 
 // Which on-chain action is in flight, so the idle buttons can say what's
@@ -56,6 +54,8 @@ export function StreamControls({
   onOptimisticUpdate?: (patch: Partial<Stream>) => void;
 }) {
   const locale = useLocale();
+  const t = useTranslations('StreamControls');
+  const tDuration = useTranslations('Durations');
   const { address } = useWallet();
   const { client, ready } = useDonationVaultClient();
   const { showToast } = useToast();
@@ -114,6 +114,13 @@ export function StreamControls({
 
   const topUpAmountRaw = parseAmount(topUpAmount);
   const topUpAmountError = describeAmountError(topUpAmount);
+  const localizedAmountError = topUpAmountError === 'Enter a valid amount.'
+    ? t('invalidAmount')
+    : topUpAmountError === 'Enter an amount greater than 0.'
+      ? t('positiveAmount')
+      : topUpAmountError?.startsWith('Use at most ')
+        ? t('decimalPlaces', { count: TOKEN_DECIMALS })
+        : topUpAmountError;
 
   async function handleTopUp(): Promise<void> {
     if (!address || !client || topUpAmountRaw === null) return;
@@ -127,7 +134,7 @@ export function StreamControls({
       });
       setEstimatedFee(formatEstimatedFee(tx.built?.fee));
       const sent = await tx.signAndSend();
-      showToast('success', `Stream topped up — ${INDEXING_LAG_NOTE}.`, txToastAction(sent, tx));
+      showToast('success', t('topUpSuccess'), txToastAction(sent, tx));
       setTopUpAmount('');
       onOptimisticUpdate?.({ balance: (BigInt(stream.balance) + topUpAmountRaw).toString() });
       onChanged();
@@ -147,7 +154,7 @@ export function StreamControls({
       const tx = await client.cancel_stream({ stream_id: BigInt(stream.onChainId) });
       setEstimatedFee(formatEstimatedFee(tx.built?.fee));
       const sent = await tx.signAndSend();
-      showToast('success', `Stream cancelled — ${INDEXING_LAG_NOTE}.`, txToastAction(sent, tx));
+      showToast('success', t('cancelSuccess'), txToastAction(sent, tx));
       onOptimisticUpdate?.({ status: 'CANCELLED' });
       onChanged();
     } catch (err) {
@@ -178,7 +185,7 @@ export function StreamControls({
       if (!freshStream) {
         showToast(
           'error',
-          "Couldn't find this stream's current balance — it may have been cancelled.",
+          t('balanceUnavailable'),
         );
         return;
       }
@@ -188,7 +195,7 @@ export function StreamControls({
       // sense here than it did on the create-stream form.
       const newRate = computeModifyRate(freshStream.balance, durationSeconds);
       if (newRate === null) {
-        showToast('error', 'Remaining balance is too small to stream over this duration.');
+        showToast('error', t('balanceTooSmall'));
         return;
       }
 
@@ -203,7 +210,7 @@ export function StreamControls({
       });
       setEstimatedFee(formatEstimatedFee(tx.built?.fee));
       const sent = await tx.signAndSend();
-      showToast('success', `Rate updated — ${INDEXING_LAG_NOTE}.`, txToastAction(sent, tx));
+      showToast('success', t('rateSuccess'), txToastAction(sent, tx));
       onChanged();
     } catch (err) {
       showToast('error', describeContractError(err));
@@ -224,8 +231,8 @@ export function StreamControls({
             step="any"
             value={topUpAmount}
             onChange={(event) => setTopUpAmount(event.target.value)}
-            placeholder="Amount"
-            aria-label="Amount to add to this stream"
+            placeholder={t('amount')}
+            aria-label={t('amountToAdd')}
             aria-invalid={topUpAmountError !== null || undefined}
             aria-describedby={topUpAmountError !== null ? 'top-up-amount-error' : undefined}
             className="w-28 rounded-md border border-gray-300 px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:focus-visible:ring-teal-400"
@@ -236,19 +243,19 @@ export function StreamControls({
             disabled={topUpAmountRaw === null}
             className="rounded-md bg-black px-3 py-1 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 dark:bg-white dark:text-black dark:focus-visible:ring-teal-400"
           >
-            Confirm
+            {t('confirm')}
           </button>
           <button
             type="button"
             onClick={() => setMode('idle')}
             className="rounded-md border border-gray-300 px-3 py-1 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:focus-visible:ring-teal-400"
           >
-            Back
+            {t('back')}
           </button>
         </div>
         {topUpAmountError !== null && (
           <p id="top-up-amount-error" className="text-xs text-amber-700 dark:text-amber-400">
-            {topUpAmountError}
+            {localizedAmountError}
           </p>
         )}
       </div>
@@ -259,7 +266,7 @@ export function StreamControls({
     return (
       <div className="flex flex-wrap items-center justify-end gap-2">
         <span className="text-sm text-gray-600 dark:text-gray-400">
-          Cancel this stream? This can&apos;t be undone.
+          {t('cancelPrompt')}
         </span>
         <button
           ref={confirmCancelButtonRef}
@@ -267,14 +274,14 @@ export function StreamControls({
           onClick={() => void handleCancel()}
           className="rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:bg-red-500 dark:hover:bg-red-600 dark:focus-visible:ring-teal-400"
         >
-          Yes, cancel
+          {t('yesCancel')}
         </button>
         <button
           type="button"
           onClick={() => setMode('idle')}
           className="rounded-md border border-gray-300 px-3 py-1 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:focus-visible:ring-teal-400"
         >
-          Never mind
+          {t('neverMind')}
         </button>
       </div>
     );
@@ -294,12 +301,12 @@ export function StreamControls({
               setDurationSeconds(Number(event.target.value));
               setModifyStartedAt(Date.now());
             }}
-            aria-label="New duration to stream the remaining balance over"
+            aria-label={t('newDuration')}
             className="rounded-md border border-gray-300 px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:bg-gray-900 dark:focus-visible:ring-teal-400"
           >
             {DURATIONS.map((d) => (
               <option key={d.seconds} value={d.seconds}>
-                {d.label}
+                {tDuration(`seconds${d.seconds}`)}
               </option>
             ))}
           </select>
@@ -309,20 +316,20 @@ export function StreamControls({
             disabled={pending !== null || previewRate === null}
             className="rounded-md bg-black px-3 py-1 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 dark:bg-white dark:text-black dark:focus-visible:ring-teal-400"
           >
-            Confirm
+            {t('confirm')}
           </button>
           <button
             type="button"
             onClick={() => setMode('idle')}
             className="rounded-md border border-gray-300 px-3 py-1 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-gray-700 dark:focus-visible:ring-teal-400"
           >
-            Back
+            {t('back')}
           </button>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400">
           {previewRate !== null
-            ? `${formatRate(previewRate)} per second, ending ${formatDate(previewEndDate.toISOString(), locale)}.`
-            : 'Remaining balance is too small to stream over this duration — try a shorter one.'}
+            ? t('ratePreview', { rate: formatRate(previewRate), date: formatDate(previewEndDate.toISOString(), locale) })
+            : t('balanceTooSmallTryShorter')}
         </p>
       </div>
     );
@@ -338,11 +345,11 @@ export function StreamControls({
     >
       {!ready && (
         <span className="text-xs text-gray-600 dark:text-gray-400">
-          Preparing contract…
+          {t('preparingContract')}
         </span>
       )}
       {pending !== null && estimatedFee && (
-        <span className="text-xs text-gray-500 dark:text-gray-400">Fee {estimatedFee}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">{t('fee', { fee: estimatedFee })}</span>
       )}
       <button
         ref={topUpButtonRef}
@@ -351,7 +358,7 @@ export function StreamControls({
         disabled={pending !== null || !ready}
         className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 dark:focus-visible:ring-teal-400"
       >
-        {pending === 'topUp' ? 'Topping up…' : 'Top up'}
+        {t(pending === 'topUp' ? 'toppingUp' : 'topUp')}
       </button>
       <button
         ref={modifyButtonRef}
@@ -363,7 +370,7 @@ export function StreamControls({
         disabled={pending !== null || !ready}
         className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 dark:focus-visible:ring-teal-400"
       >
-        {pending === 'modifyRate' ? 'Updating…' : 'Modify rate'}
+        {t(pending === 'modifyRate' ? 'updating' : 'modifyRate')}
       </button>
       <button
         ref={cancelButtonRef}
@@ -372,7 +379,7 @@ export function StreamControls({
         disabled={pending !== null || !ready}
         className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 dark:focus-visible:ring-teal-400"
       >
-        {pending === 'cancel' ? 'Cancelling…' : 'Cancel'}
+        {t(pending === 'cancel' ? 'cancelling' : 'cancel')}
       </button>
     </div>
   );

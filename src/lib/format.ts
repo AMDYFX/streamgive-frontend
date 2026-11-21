@@ -5,7 +5,7 @@ import { getNativeAssetAddress, getUsdcAssetAddress } from './stellar';
 // places — fixed by the protocol, not something per-asset to look up.
 export const TOKEN_DECIMALS = 7;
 
-// Fixed at 'en-US' rather than the viewer's browser locale (issue #155): a
+// Defaults to 'en-US' rather than the viewer's browser locale (issue #155): a
 // locale-dependent decimal separator makes the same on-screen amount read
 // as two different numbers for two viewers (",5" is 5 for a de-DE reader
 // but a fraction for an en-US one), which is ambiguous for money in a way
@@ -23,9 +23,9 @@ const RAW_AMOUNT_PATTERN = /^-?\d+$/;
 /** Formats a raw i128 amount string (as returned by the backend) into a
  * human-readable decimal. Splits the integer/fractional parts on the
  * BigInt directly, so precision is preserved even for values well past
- * Number.MAX_SAFE_INTEGER. Always renders with 'en-US' grouping/decimal
- * conventions (comma thousands separator, period decimal point) regardless
- * of the viewer's browser locale (issue #155).
+ * Number.MAX_SAFE_INTEGER. Defaults to 'en-US' grouping/decimal conventions
+ * regardless of the viewer's browser locale (issue #155). Callers can pass
+ * the app's selected locale when the amount appears in localized UI.
  *
  * `decimals` defaults to TOKEN_DECIMALS (every Stellar Asset Contract, which
  * covers native XLM and USDC here) but a donor-supplied custom token can
@@ -36,7 +36,11 @@ const RAW_AMOUNT_PATTERN = /^-?\d+$/;
  * `undefined` slipping through at runtime, a decimal like "1.5", NaN, etc.)
  * instead of throwing (issue #216) -- the API's TypeScript types promise a
  * `string`, but a malformed response shouldn't take down the whole page. */
-export function formatAmount(raw: string, decimals: number = TOKEN_DECIMALS): string {
+export function formatAmount(
+  raw: string,
+  decimals: number = TOKEN_DECIMALS,
+  locale: string = AMOUNT_LOCALE,
+): string {
   if (typeof raw !== 'string' || !RAW_AMOUNT_PATTERN.test(raw)) {
     return '—';
   }
@@ -48,10 +52,13 @@ export function formatAmount(raw: string, decimals: number = TOKEN_DECIMALS): st
   const whole = abs / divisor;
   const fraction = abs % divisor;
 
-  const wholeStr = whole.toLocaleString(AMOUNT_LOCALE);
+  const wholeStr = whole.toLocaleString(locale);
   const fractionStr = fraction.toString().padStart(decimals, '0').replace(/0+$/, '');
+  const decimalSeparator = new Intl.NumberFormat(locale)
+    .formatToParts(1.1)
+    .find((part) => part.type === 'decimal')?.value ?? '.';
 
-  const formatted = fractionStr ? `${wholeStr}.${fractionStr}` : wholeStr;
+  const formatted = fractionStr ? `${wholeStr}${decimalSeparator}${fractionStr}` : wholeStr;
   return isNegative ? `-${formatted}` : formatted;
 }
 
@@ -174,6 +181,18 @@ export function describeAmountError(
   input: string,
   decimals: number = TOKEN_DECIMALS,
 ): string | null {
+  const reason = getAmountErrorReason(input, decimals);
+  if (reason === 'invalid') return 'Enter a valid amount.';
+  if (reason === 'precision') return `Use at most ${decimals} decimal places.`;
+  if (reason === 'nonPositive') return 'Enter an amount greater than 0.';
+  return null;
+}
+
+/** A locale-independent reason callers can use to translate amount errors. */
+export function getAmountErrorReason(
+  input: string,
+  decimals: number = TOKEN_DECIMALS,
+): 'invalid' | 'precision' | 'nonPositive' | null {
   const trimmed = input.trim();
   if (trimmed === '') {
     return null;
@@ -181,17 +200,17 @@ export function describeAmountError(
 
   const match = /^(\d*)(?:\.(\d*))?$/.exec(trimmed);
   if (!match || (match[1] === '' && (match[2] ?? '') === '')) {
-    return 'Enter a valid amount.';
+    return 'invalid';
   }
 
   const [, whole, fraction = ''] = match;
   if (fraction.length > decimals) {
-    return `Use at most ${decimals} decimal places.`;
+    return 'precision';
   }
 
   const raw = BigInt((whole || '0') + fraction.padEnd(decimals, '0'));
   if (raw <= 0n) {
-    return 'Enter an amount greater than 0.';
+    return 'nonPositive';
   }
 
   return null;

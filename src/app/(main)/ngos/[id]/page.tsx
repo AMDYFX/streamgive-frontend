@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getLocale } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 
 import { CopyLinkButton } from '@/components/common/CopyLinkButton';
 import { DonateQrCode } from '@/components/ngos/DonateQrCode';
 import { getNgo, getStreams, type NgoProfile, type Stream } from '@/lib/api';
-import { formatAmount, formatDate, formatTokenAmount, truncateAddress } from '@/lib/format';
+import { formatAmount, formatDate, tokenSymbol, truncateAddress } from '@/lib/format';
 import { explorerUrl } from '@/lib/stellar';
 
 const RECENT_STREAMS_LIMIT = 10;
@@ -28,13 +28,14 @@ type Props = { params: Promise<{ id: string }> };
 // this doesn't cost a second network round-trip on top of the page itself.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+  const t = await getTranslations('NgoProfile');
   const ngo = await getNgo(id).catch(() => null);
 
   if (!ngo) {
-    return { title: 'NGO not found' };
+    return { title: t('notFound') };
   }
 
-  const description = `Support ${ngo.name} with a recurring, streaming donation on Stellar.`;
+  const description = t('metadataDescription', { name: ngo.name });
   // Relative — resolved against metadataBase (the root layout sets it to
   // NEXT_PUBLIC_APP_URL), same as the root layout's own openGraph/twitter.
   const profileUrl = `/ngos/${id}`;
@@ -66,6 +67,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function NgoProfilePage({ params }: Props) {
   const { id } = await params;
+  const t = await getTranslations('NgoProfile');
 
   let ngo: NgoProfile | null;
   try {
@@ -74,13 +76,13 @@ export default async function NgoProfilePage({ params }: Props) {
     return (
       <main id="main" className="px-6 py-16 sm:px-12">
         <p className="text-red-600 dark:text-red-400">
-          Couldn&apos;t load this NGO&apos;s profile. Please check your connection and try again.
+          {t('loadError')}
         </p>
         <Link
           href={`/ngos/${id}`}
           className="mt-3 inline-block rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
         >
-          Retry
+          {t('retry')}
         </Link>
       </main>
     );
@@ -110,7 +112,7 @@ export default async function NgoProfilePage({ params }: Props) {
           <h1 className="text-2xl font-bold">{ngo.name}</h1>
           {ngo.verified && (
             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
-              Verified
+              {t('verified')}
             </span>
           )}
           <CopyLinkButton />
@@ -151,20 +153,30 @@ export default async function NgoProfilePage({ params }: Props) {
 
         <dl className="mt-8 grid grid-cols-2 gap-6 sm:grid-cols-4">
           <div>
-            <dt className="text-sm text-gray-500 dark:text-gray-400">Total committed</dt>
-            <dd className="text-lg font-semibold">{formatAmount(ngo.stats.totalCommitted)}</dd>
+            <dt className="text-sm text-gray-500 dark:text-gray-400">{t('totalCommitted')}</dt>
+            <dd className="text-lg font-semibold">
+              {formatAmount(ngo.stats.totalCommitted, undefined, locale)}
+            </dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500 dark:text-gray-400">Total withdrawn</dt>
-            <dd className="text-lg font-semibold">{formatAmount(ngo.stats.totalWithdrawn)}</dd>
+            <dt className="text-sm text-gray-500 dark:text-gray-400">{t('totalWithdrawn')}</dt>
+            <dd className="text-lg font-semibold">
+              {formatAmount(ngo.stats.totalWithdrawn, undefined, locale)}
+            </dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500 dark:text-gray-400">Active streams</dt>
-            <dd className="text-lg font-semibold">{ngo.stats.activeStreamCount}</dd>
+            <dt className="text-sm text-gray-500 dark:text-gray-400">
+              {t('activeStreams', { count: ngo.stats.activeStreamCount })}
+            </dt>
+            <dd className="text-lg font-semibold">
+              {ngo.stats.activeStreamCount.toLocaleString(locale)}
+            </dd>
           </div>
           <div>
-            <dt className="text-sm text-gray-500 dark:text-gray-400">Donors</dt>
-            <dd className="text-lg font-semibold">{ngo.stats.donorCount}</dd>
+            <dt className="text-sm text-gray-500 dark:text-gray-400">
+              {t('donors', { count: ngo.stats.donorCount })}
+            </dt>
+            <dd className="text-lg font-semibold">{ngo.stats.donorCount.toLocaleString(locale)}</dd>
           </div>
         </dl>
 
@@ -174,16 +186,16 @@ export default async function NgoProfilePage({ params }: Props) {
               href={`/ngos/${ngo.id}/donate`}
               className="inline-block rounded-md bg-black px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
             >
-              Start streaming
+              {t('startStreaming')}
             </Link>
           )}
 
           <DonateQrCode ngoId={ngo.id} ngoName={ngo.name} />
         </div>
 
-        <h2 className="mt-12 text-lg font-semibold">Recent streams</h2>
+        <h2 className="mt-12 text-lg font-semibold">{t('recentStreams')}</h2>
         {recentStreams.length === 0 ? (
-          <p className="mt-2 text-gray-600 dark:text-gray-400">No streams yet.</p>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">{t('noStreams')}</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {recentStreams.map((stream) => (
@@ -200,7 +212,9 @@ export default async function NgoProfilePage({ params }: Props) {
                   {truncateAddress(stream.donor.address)}
                 </a>
                 <span className="text-gray-500 dark:text-gray-400">
-                  {formatTokenAmount(stream.rate, stream.tokenAddress)} / second
+                  {t('ratePerSecond', {
+                    rate: `${formatAmount(stream.rate, undefined, locale)} ${tokenSymbol(stream.tokenAddress)}`,
+                  })}
                 </span>
                 <span
                   className={
@@ -209,7 +223,7 @@ export default async function NgoProfilePage({ params }: Props) {
                       : 'text-gray-500 dark:text-gray-400'
                   }
                 >
-                  {stream.status === 'ACTIVE' ? 'Active' : 'Cancelled'}
+                  {stream.status === 'ACTIVE' ? t('active') : t('cancelled')}
                 </span>
                 <span className="text-gray-500 dark:text-gray-400">
                   {formatDate(stream.createdAt, locale)}

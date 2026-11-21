@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Stream } from '@/lib/api';
+import { renderWithIntl } from '@/test/renderWithIntl';
 
 import { StreamDetailsModal } from './StreamDetailsModal';
-import { renderWithLocale as render } from '../../../test/renderWithLocale';
 
 vi.mock('@/lib/stellar', () => ({
   explorerUrl: vi.fn((type, id) => `https://stellar.expert/${type}/${id}`),
@@ -32,19 +32,19 @@ const MOCK_STREAM: Stream = {
 describe('StreamDetailsModal', () => {
   it('renders the native asset as "XLM"', () => {
     const nativeStream = { ...MOCK_STREAM, tokenAddress: 'NATIVE_ASSET_ID' };
-    render(<StreamDetailsModal stream={nativeStream} onClose={vi.fn()} />);
+    renderWithIntl(<StreamDetailsModal stream={nativeStream} onClose={vi.fn()} />);
     
     expect(screen.getByText('XLM')).toBeInTheDocument();
   });
 
   it('renders a non-native token as its raw contract address', () => {
-    render(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
+    renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
     
     expect(screen.getByText('CCONTRACTADDRESS')).toBeInTheDocument();
   });
 
   it('links "View contract" to the donation-vault address on stellar.expert', () => {
-    render(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
+    renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
 
     expect(screen.getByRole('link', { name: 'View contract' })).toHaveAttribute(
       'href',
@@ -54,7 +54,7 @@ describe('StreamDetailsModal', () => {
 
   it('calls onClose when clicking the modal backdrop', () => {
     const onClose = vi.fn();
-    render(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
+    renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
     
     const dialog = screen.getByRole('dialog');
     const backdrop = dialog.parentElement!;
@@ -65,7 +65,7 @@ describe('StreamDetailsModal', () => {
 
   it('calls onClose when clicking the explicit close button', () => {
     const onClose = vi.fn();
-    render(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
+    renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
     
     const closeBtn = screen.getByLabelText('Close');
     fireEvent.click(closeBtn);
@@ -74,7 +74,7 @@ describe('StreamDetailsModal', () => {
 
   it('does NOT call onClose when clicking inside the dialog content itself', () => {
     const onClose = vi.fn();
-    render(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
+    renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
     
     const dialog = screen.getByRole('dialog');
     fireEvent.click(dialog);
@@ -95,14 +95,14 @@ describe('StreamDetailsModal', () => {
     }
 
     it('moves focus to the close button when it opens', () => {
-      render(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
+      renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
 
       expect(screen.getByLabelText('Close')).toHaveFocus();
     });
 
     it('calls onClose when Escape is pressed', () => {
       const onClose = vi.fn();
-      render(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
+      renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
 
       fireEvent.keyDown(document, { key: 'Escape' });
 
@@ -111,7 +111,7 @@ describe('StreamDetailsModal', () => {
 
     it('does not call onClose for other keys', () => {
       const onClose = vi.fn();
-      render(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
+      renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
 
       fireEvent.keyDown(document, { key: 'Enter' });
       fireEvent.keyDown(document, { key: 'a' });
@@ -121,7 +121,7 @@ describe('StreamDetailsModal', () => {
 
     it('stops listening for Escape once it unmounts', () => {
       const onClose = vi.fn();
-      const { unmount } = render(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
+      const { unmount } = renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={onClose} />);
 
       unmount();
       fireEvent.keyDown(document, { key: 'Escape' });
@@ -130,7 +130,7 @@ describe('StreamDetailsModal', () => {
     });
 
     it('wraps Tab from the last focusable element back to the first', () => {
-      render(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
+      renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
       const closeButton = screen.getByLabelText('Close');
       // The on-chain ID's CopyAddressButton is the last focusable element —
       // it comes after "View contract" in the dialog's own tab order.
@@ -144,7 +144,7 @@ describe('StreamDetailsModal', () => {
     });
 
     it('wraps Shift+Tab from the first focusable element to the last', () => {
-      render(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
+      renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
       const closeButton = screen.getByLabelText('Close');
       const lastControl = screen.getByRole('button', { name: `Copy address ${MOCK_STREAM.onChainId}` });
       expect(closeButton).toHaveFocus();
@@ -156,7 +156,7 @@ describe('StreamDetailsModal', () => {
     });
 
     it('leaves Tab alone while focus is in the middle of the dialog', () => {
-      render(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
+      renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
       screen.getByRole('link', { name: 'Test NGO' }).focus();
 
       const forward = fireEvent.keyDown(document, { key: 'Tab' });
@@ -170,7 +170,7 @@ describe('StreamDetailsModal', () => {
 
     it('keeps focus inside the dialog across a full Tab cycle', async () => {
       const user = userEvent.setup();
-      render(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
+      renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
       const dialog = screen.getByRole('dialog');
       const focusableCount = dialog.querySelectorAll('a[href], button').length;
 
@@ -186,7 +186,7 @@ describe('StreamDetailsModal', () => {
 
     it('locks body scroll while open and restores it on close', () => {
       document.body.style.overflow = 'scroll';
-      const { unmount } = render(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
+      const { unmount } = renderWithIntl(<StreamDetailsModal stream={MOCK_STREAM} onClose={vi.fn()} />);
 
       expect(document.body.style.overflow).toBe('hidden');
 
@@ -198,7 +198,7 @@ describe('StreamDetailsModal', () => {
 
     it('returns focus to the opener when closed with Escape', async () => {
       const user = userEvent.setup();
-      render(<OpenerHarness />);
+      renderWithIntl(<OpenerHarness />);
       const opener = screen.getByRole('button', { name: 'Open details' });
 
       await user.click(opener);
@@ -212,7 +212,7 @@ describe('StreamDetailsModal', () => {
 
     it('returns focus to the opener when closed with the close button', async () => {
       const user = userEvent.setup();
-      render(<OpenerHarness />);
+      renderWithIntl(<OpenerHarness />);
       const opener = screen.getByRole('button', { name: 'Open details' });
 
       await user.click(opener);

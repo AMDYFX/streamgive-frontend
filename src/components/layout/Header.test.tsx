@@ -2,8 +2,9 @@ import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { renderWithIntl } from '@/test/renderWithIntl';
+
 import { Header } from './Header';
-import { renderWithLocale as render } from '../../../test/renderWithLocale';
 
 const mockUsePathname = vi.fn(() => '/ngos');
 
@@ -41,23 +42,40 @@ beforeEach(() => {
  * desktop nav doesn't currently highlight the active link at all. */
 async function openMobileMenu() {
   const user = userEvent.setup();
-  render(<Header />);
+  renderWithIntl(<Header />);
   await user.click(screen.getByRole('button', { name: 'Toggle menu' }));
   return document.getElementById('mobile-nav') as HTMLElement;
 }
 
 describe('Header', () => {
   it('renders all four navigation links with the correct hrefs', () => {
-    render(<Header />);
+    renderWithIntl(<Header />);
 
     for (const { href, label } of NAV_LINKS) {
       expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href);
     }
   });
 
+  it('shows Spanish navigation and wallet labels when Spanish is selected', () => {
+    renderWithIntl(<Header />, 'es');
+
+    expect(screen.getByRole('link', { name: 'Explorar ONG' })).toHaveAttribute('href', '/ngos');
+    expect(screen.getByRole('link', { name: 'Panel de donaciones' })).toHaveAttribute(
+      'href',
+      '/dashboard',
+    );
+    expect(screen.getByRole('link', { name: 'Impacto' })).toHaveAttribute('href', '/impact');
+    expect(screen.getByRole('link', { name: 'Postular como ONG' })).toHaveAttribute(
+      'href',
+      '/apply',
+    );
+    expect(screen.getByRole('button', { name: 'Conectar billetera' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir al contenido' })).toHaveAttribute('href', '#main');
+  });
+
   it('toggles the mobile menu open and closed on click', async () => {
     const user = userEvent.setup();
-    render(<Header />);
+    renderWithIntl(<Header />);
     const toggle = screen.getByRole('button', { name: 'Toggle menu' });
 
     // The mobile <nav> is only mounted while open — the desktop <nav> stays
@@ -78,7 +96,7 @@ describe('Header', () => {
   });
 
   it('gives every desktop nav link a visible focus-visible ring', () => {
-    render(<Header />);
+    renderWithIntl(<Header />);
 
     for (const { label } of NAV_LINKS) {
       expect(screen.getByRole('link', { name: label })).toHaveClass(
@@ -90,7 +108,7 @@ describe('Header', () => {
   });
 
   it('gives the mobile menu toggle a visible focus-visible ring', () => {
-    render(<Header />);
+    renderWithIntl(<Header />);
 
     expect(screen.getByRole('button', { name: 'Toggle menu' })).toHaveClass(
       'focus-visible:outline-none',
@@ -101,7 +119,7 @@ describe('Header', () => {
 
   it('closes the mobile menu when a nav link inside it is clicked', async () => {
     const user = userEvent.setup();
-    render(<Header />);
+    renderWithIntl(<Header />);
 
     await user.click(screen.getByRole('button', { name: 'Toggle menu' }));
     expect(document.getElementById('mobile-nav')).toBeInTheDocument();
@@ -118,7 +136,7 @@ describe('Header', () => {
   describe('closing the mobile menu', () => {
     it('closes on Escape and returns focus to the toggle', async () => {
       const user = userEvent.setup();
-      render(<Header />);
+      renderWithIntl(<Header />);
       const toggle = screen.getByRole('button', { name: 'Toggle menu' });
 
       await user.click(toggle);
@@ -132,7 +150,7 @@ describe('Header', () => {
 
     it('closes on a click outside the menu and returns focus to the toggle', async () => {
       const user = userEvent.setup();
-      render(
+      renderWithIntl(
         <>
           <Header />
           <button type="button">Outside</button>
@@ -151,7 +169,7 @@ describe('Header', () => {
 
     it('stays open when the click is inside the menu itself', async () => {
       const user = userEvent.setup();
-      render(<Header />);
+      renderWithIntl(<Header />);
 
       await user.click(screen.getByRole('button', { name: 'Toggle menu' }));
       fireEvent.mouseDown(document.getElementById('mobile-nav')!);

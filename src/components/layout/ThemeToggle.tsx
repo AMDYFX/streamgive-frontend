@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 import {
@@ -78,12 +79,6 @@ function nextPreference(current: ThemePreference): ThemePreference {
   return CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length];
 }
 
-const LABELS: Record<ThemePreference, string> = {
-  light: 'Switch to dark mode',
-  dark: 'Switch to system mode',
-  system: 'Switch to light mode',
-};
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -102,6 +97,7 @@ const LABELS: Record<ThemePreference, string> = {
  *   mismatch (the server doesn't know the user's stored preference).
  */
 export function ThemeToggle() {
+  const t = useTranslations('ThemeToggle');
   const [preference, setPreference] = useState<ThemePreference>('system');
   const [mounted, setMounted] = useState(false);
 
@@ -172,12 +168,22 @@ export function ThemeToggle() {
       <MoonIcon />
     );
 
+  const label = mounted
+    ? t(
+        preference === 'light'
+          ? 'switchToDark'
+          : preference === 'dark'
+            ? 'switchToSystem'
+            : 'switchToLight',
+      )
+    : t('toggleTheme');
+
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={mounted ? LABELS[preference] : 'Toggle theme'}
-      title={mounted ? LABELS[preference] : 'Toggle theme'}
+      aria-label={label}
+      title={label}
       className="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white dark:focus-visible:ring-teal-400"
     >
       {mounted && icon}

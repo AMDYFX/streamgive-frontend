@@ -34,6 +34,9 @@ wired up and how to add a language.
 See [docs/adr/README.md](./docs/adr/README.md) for accepted architecture
 decisions and the template for recording new ones.
 
+See the [StreamGive glossary](./docs/GLOSSARY.md) for terms used throughout
+the app, including streams, rates, stroops, committed funds, and verified NGOs.
+
 ## Local development
 
 ```
@@ -43,6 +46,8 @@ npm run dev   # http://localhost:3001 — 3000 is taken by streamgive-backend
 ```
 
 See [ENVIRONMENT.md](./ENVIRONMENT.md) for a full reference of every `NEXT_PUBLIC_*` variable.
+To see backend data and use the deployed testnet contracts locally, follow
+[the full local backend and testnet setup](./docs/LOCAL_BACKEND.md).
 
 ## Deployment
 
