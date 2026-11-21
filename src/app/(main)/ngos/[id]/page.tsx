@@ -6,7 +6,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { CopyLinkButton } from '@/components/common/CopyLinkButton';
 import { DonateQrCode } from '@/components/ngos/DonateQrCode';
 import { getNgo, getStreams, type NgoProfile, type Stream } from '@/lib/api';
-import { formatAmount, tokenSymbol, truncateAddress } from '@/lib/format';
+import { formatAmount, formatDate, tokenSymbol, truncateAddress } from '@/lib/format';
 import { explorerUrl } from '@/lib/stellar';
 
 const RECENT_STREAMS_LIMIT = 10;
@@ -68,7 +68,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function NgoProfilePage({ params }: Props) {
   const { id } = await params;
   const t = await getTranslations('NgoProfile');
-  const locale = await getLocale();
 
   let ngo: NgoProfile | null;
   try {
@@ -99,9 +98,10 @@ export default async function NgoProfilePage({ params }: Props) {
   // enforced here rather than trusting response order. The limit still
   // keeps the request itself small on NGOs with a long stream history —
   // this only re-sorts whatever page comes back, not the full history.
-  const streams = await getStreams({ ngo: ngo.id, limit: RECENT_STREAMS_LIMIT }).catch(
-    (): Stream[] => [],
-  );
+  const [locale, streams] = await Promise.all([
+    getLocale(),
+    getStreams({ ngo: ngo.id, limit: RECENT_STREAMS_LIMIT }).catch((): Stream[] => []),
+  ]);
   const recentStreams = [...streams].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
@@ -226,7 +226,7 @@ export default async function NgoProfilePage({ params }: Props) {
                   {stream.status === 'ACTIVE' ? t('active') : t('cancelled')}
                 </span>
                 <span className="text-gray-500 dark:text-gray-400">
-                  {new Date(stream.createdAt).toLocaleDateString(locale)}
+                  {formatDate(stream.createdAt, locale)}
                 </span>
               </li>
             ))}

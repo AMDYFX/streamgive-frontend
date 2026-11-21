@@ -47,7 +47,6 @@ function LiveBalance({ stream }: { stream: Stream }) {
 
     // Prime the clock subscription immediately instead of showing an old
     // balance until the first interval fires after a stream update.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
@@ -92,7 +91,7 @@ export default function DashboardPage() {
   const [loadError, setLoadError] = useState(false);
   const [detailsStream, setDetailsStream] = useState<Stream | null>(null);
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'CANCELLED'>('ALL');
-  const [filterInitialized, setFilterInitialized] = useState(false);
+  const [, setFilterInitialized] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -217,10 +216,6 @@ export default function DashboardPage() {
       cancel();
     };
   }, [address, begin, cancel]);
-
-  const applyOptimisticUpdate = useCallback((streamId: string, patch: Partial<Stream>) => {
-    setStreams((prev) => prev.map((s) => (s.id === streamId ? { ...s, ...patch } : s)));
-  }, []);
 
   const totalCommitted = formatTokenTotals(
     streams.map((s) => ({

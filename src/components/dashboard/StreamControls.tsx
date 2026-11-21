@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { useToast } from '@/components/toast/ToastProvider';
@@ -8,7 +8,7 @@ import { useWallet } from '@/components/wallet/WalletProvider';
 import { getStreams, type Stream } from '@/lib/api';
 import { describeContractError } from '@/lib/contractTypes';
 import { useDonationVaultClient } from '@/lib/donationVaultClient';
-import { describeAmountError, formatEstimatedFee, formatRate, parseAmount, TOKEN_DECIMALS } from '@/lib/format';
+import { describeAmountError, formatDate, formatEstimatedFee, formatRate, parseAmount, TOKEN_DECIMALS } from '@/lib/format';
 import { DURATIONS } from '@/lib/durations';
 import { txToastAction } from '@/lib/stellar';
 
@@ -53,6 +53,7 @@ export function StreamControls({
    */
   onOptimisticUpdate?: (patch: Partial<Stream>) => void;
 }) {
+  const locale = useLocale();
   const t = useTranslations('StreamControls');
   const tDuration = useTranslations('Durations');
   const { address } = useWallet();
@@ -327,7 +328,7 @@ export function StreamControls({
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400">
           {previewRate !== null
-            ? t('ratePreview', { rate: formatRate(previewRate), date: previewEndDate.toLocaleDateString() })
+            ? t('ratePreview', { rate: formatRate(previewRate), date: formatDate(previewEndDate.toISOString(), locale) })
             : t('balanceTooSmallTryShorter')}
         </p>
       </div>

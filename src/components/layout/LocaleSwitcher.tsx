@@ -13,6 +13,10 @@ import {
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
+export function localeCookieString(locale: Locale, protocol: string): string {
+  return `${LOCALE_COOKIE}=${locale}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${protocol === 'https:' ? '; Secure' : ''}`;
+}
+
 /** The locale switcher writes the NEXT_LOCALE cookie read by request.ts and
  * refreshes the page so components receive the selected messages. */
 function useSafeLocale(): Locale {
@@ -46,7 +50,7 @@ export function LocaleSwitcher() {
 
   function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
     const next = event.target.value as Locale;
-    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}`;
+    document.cookie = localeCookieString(next, window.location.protocol);
     router?.refresh();
   }
 

@@ -4,7 +4,9 @@ const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
 if (
   !configuredApiUrl &&
   process.env.NODE_ENV !== 'development' &&
-  process.env.NODE_ENV !== 'test'
+  process.env.NODE_ENV !== 'test' &&
+  // GitHub Actions builds the app for verification without deploying it.
+  process.env.GITHUB_ACTIONS !== 'true'
 ) {
   throw new Error('NEXT_PUBLIC_API_URL must be set outside development.');
 }

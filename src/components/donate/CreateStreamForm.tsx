@@ -12,6 +12,7 @@ import { DURATIONS } from '@/lib/durations';
 import {
   formatAmount,
   formatAmountInput,
+  formatDateTime,
   formatEstimatedFee,
   formatRate,
   getAmountErrorReason,
@@ -747,7 +748,9 @@ function ConfirmDonationSummary({
           </div>
           <div className="flex items-center justify-between gap-4">
             <dt className="text-gray-500 dark:text-gray-400">{t('ends')}</dt>
-            <dd className="font-medium">{effectiveEndDate.toLocaleString(locale)}</dd>
+            <dd className="font-medium">
+              {formatDateTime(effectiveEndDate.toISOString(), locale)}
+            </dd>
           </div>
         </dl>
 
