@@ -354,3 +354,35 @@
     }
   }
 }
+{
+  "NgoAdmin": {
+    "withdrawals": {
+      "title": "Retiros",
+      "loading": "Cargando retiros...",
+      "empty": "Todavía no hay retiros.",
+      "error": "No se pudieron cargar los retiros.",
+      "status": "Estado",
+      "amount": "Cantidad",
+      "date": "Fecha",
+      "actions": "Acciones"
+    },
+    "embed": {
+      "title": "Inserta tu transmisión",
+      "description": "Utiliza el fragmento siguiente para insertar tu transmisión de donaciones.",
+      "instructions": "Copia y pega este código en tu sitio web.",
+      "copy": "Copiar fragmento",
+      "copied": "¡Fragmento copiado!",
+      "copyError": "No se pudo copiar el fragmento."
+    },
+    "streams": {
+      "title": "Tus transmisiones",
+      "loading": "Cargando transmisiones...",
+      "empty": "Todavía no has creado ninguna transmisión.",
+      "error": "No se pudieron cargar las transmisiones.",
+      "status": "Estado",
+      "amount": "Cantidad",
+      "recipient": "Destinatario",
+      "actions": "Acciones"
+    }
+  }
+}
